@@ -1,0 +1,17 @@
+{
+  "topic": "NVIDIA quarterly earnings and AI chip leadership",
+  "facts": [
+    "NVIDIA designs GPUs widely used for AI training and inference",
+    "Data center revenue has grown significantly year-over-year",
+    "Competition includes AMD and custom accelerators"
+  ],
+  "news": [
+    "Recent earnings showed strong demand for AI infrastructure",
+    "Partnerships announced with major cloud providers"
+  ],
+  "target_seconds": 30,
+  "mood": "excited",
+  "voice_id": "en-US-Studio-O",
+  "voice_speed": "medium",
+  "force_cache_refresh": true
+}

@@ -1,0 +1,61 @@
+title: "Apple Stock Explainer"
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/apple_story
+segments:
+  - text: >-
+      What if I told you a $10,000 investment turned into $70,000?
+    emotion: curious
+    visuals:
+      - money cash dollars finance
+
+  - text: >-
+      This is Apple. Started in a garage. Now worth three trillion dollars.
+    emotion: serious
+    clips:
+      - tags:
+          - garage workshop vintage
+        trigger: "garage"
+      - tags:
+          - skyscraper modern corporate building
+        trigger: "trillion"
+
+  - text: >-
+      You probably have one of their products in your pocket right now.
+    emotion: informative
+    visuals:
+      - smartphone pocket person walking street
+
+  - text: >-
+      But here's the thing. They don't just sell devices. They sell an ecosystem you can't leave.
+    emotion: serious
+    clips:
+      - tags:
+          - phone apps screen interface
+        trigger: "devices"
+      - tags:
+          - connected technology network
+        trigger: "ecosystem"
+
+  - text: >-
+      In 2014, the stock was $31. Today? Over $227. That's a 600% return.
+    emotion: dramatic
+    clips:
+      - tags:
+          - stock chart trading screen
+        trigger: "stock"
+      - tags:
+          - graph rising green success
+        trigger: "$227"
+
+  - text: >-
+      From a garage to the most valuable company on Earth. That's the Apple story.
+    emotion: impactful
+    clips:
+      - tags:
+          - garage tools workshop dim
+        trigger: "garage"
+      - tags:
+          - earth globe technology
+        trigger: "Earth"
