@@ -1,0 +1,81 @@
+title: Apple Inc stock Explainer
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/apple_inc_stock
+segments:
+- text: Imagine you're holding a tiny fruit with the power to change the world.
+  emotion: curious
+  clips:
+  - tags:
+    - hand holding apple
+    trigger: fruit
+- text: No, we're not talking about apples you eat, but Apple Inc stock!
+  emotion: dramatic
+  clips:
+  - tags:
+    - stock market trading
+    trigger: stock
+- text: Ever wondered how this tech giant became a household name?
+  emotion: curious
+  clips:
+  - tags:
+    - city skyline modern
+    trigger: giant
+- text: Apple started in a humble garage and quickly grew.
+  emotion: informative
+  clips:
+  - tags:
+    - garage workshop vintage
+    trigger: garage
+- text: With innovations like the iPhone, they've revolutionized tech.
+  emotion: impactful
+  clips:
+  - tags:
+    - smartphone modern technology
+    trigger: innovations
+- text: Their sleek designs and features keep us hooked.
+  emotion: informative
+  clips:
+  - tags:
+    - sleek device design
+    trigger: designs
+- text: Beyond gadgets, Apple's influence extends to software, services, and more.
+  emotion: informative
+  clips:
+  - tags:
+    - software development screen
+    trigger: software
+- text: In 2014, Apple shares were $31, and today they've soared to over $227.
+  emotion: dramatic
+  on_screen_text: "$31 \0 $227 (2014-2024)"
+  clips:
+  - tags:
+    - chart graph data visualization
+    trigger: '2014'
+- text: >-
+    This is a staggering increase of over 630%, reflecting their relentless innovation.
+  emotion: impactful
+  on_screen_text: +630% growth
+  clips:
+  - tags:
+    - stock market screen trading
+    trigger: staggering
+- text: So, could this small fruit hold the key to our tech-driven future?
+  emotion: curious
+  clips:
+  - tags:
+    - futuristic technology concept
+    trigger: future
+- text: Apple's journey reminds us of the power of transformation and innovation.
+  emotion: impactful
+  clips:
+  - tags:
+    - technology innovation concept
+    trigger: journey
+- text: The question is, what will they redefine next in our digital world?
+  emotion: curious
+  clips:
+  - tags:
+    - digital world exploration
+    trigger: redefine

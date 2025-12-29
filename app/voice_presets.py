@@ -20,9 +20,9 @@ from typing import TypedDict, Dict
 
 
 class VoiceSettings(TypedDict):
-    languageCode: str
-    name: str
-    ssmlGender: str
+	languageCode: str
+	name: str
+	ssmlGender: str
 
 
 VOICE_CATALOG: Dict[str, str] = {
@@ -39,11 +39,11 @@ VOICE_CATALOG: Dict[str, str] = {
 DEFAULT_VOICE = "en-US-Studio-O"
 
 VOICE_PRESETS: Dict[str, VoiceSettings] = {
-    "default": {
-        "languageCode": "en-US",
-        "name": DEFAULT_VOICE,
-        "ssmlGender": "FEMALE"
-    },
+	"default": {
+		"languageCode": "en-US",
+		"name": DEFAULT_VOICE,
+		"ssmlGender": "FEMALE"
+	},
     "professional": {
         "languageCode": "en-US",
         "name": "en-US-Studio-O",

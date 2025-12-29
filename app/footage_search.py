@@ -24,9 +24,9 @@ class VideoFetcher:
         self.settings = get_settings()
         self.cache = cache
         self.sources: List[VideoSource] = [
-            PexelsSource(),   # Best quality, good variety
-            PixabaySource(),  # Has categories, good for specific topics
-            FreepikSource(),  # Premium quality but rate-limited
+            PexelsSource(),   # Fast downloads, good quality
+            PixabaySource(),  # Good variety
+            FreepikSource(),  # Premium but slow (ZIP downloads)
         ]
         self._last_result: Optional[VideoResult] = None  # Track for metadata
     

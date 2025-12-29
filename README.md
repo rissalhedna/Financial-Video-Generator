@@ -1,78 +1,214 @@
-## AI Financial Video Generator (Stock Footage + Google TTS)
+# Fiindo - AI Financial Video Generator
 
-- Input: raw financial data (company/stock/news) as JSON
-- Output: 10–60s vertical 720x1280 MP4, synced TTS, neutral/educational tone
-- Pipeline: script → stock visuals → TTS → subtitles → render
+Generate short-form financial videos with AI-generated scripts, stock footage, and text-to-speech.
+
+## Features
+
+- **Agentic Script Generation**: Multi-agent LLM pipeline for storytelling
+- **Stock Footage Search**: Pexels, Pixabay, Freepik integration
+- **Google Cloud TTS**: Natural voice synthesis with SSML
+- **Word-Level Visual Sync**: Clips switch at trigger words
+- **Chart Placeholders**: Ready for future chart generation
+
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.10+
 - ffmpeg installed on PATH
-- API keys in `.env`:
-  - `OPENAI_API_KEY`
-  - `GOOGLE_API_KEY` (for Text-to-Speech)
-  - `FREEPIK_API_KEY` (for visuals)
-  - Optional: `PIXABAY_API_KEY`
+- API keys (see Setup)
 
 ### Setup
 
 ```bash
+# Install dependencies
 pip install -r requirements.txt
-cp .env.example .env  # fill keys (or export vars)
+
+# Configure API keys
+cp .env.example .env
+# Edit .env with your keys
 ```
 
-### Run
+**Required API Keys** (in `.env`):
+
+- `OPENAI_API_KEY` - For script generation
+- `GOOGLE_API_KEY` - For Text-to-Speech
+- At least one of:
+  - `PEXELS_API_KEY`
+  - `PIXABAY_API_KEY`
+  - `FREEPIK_API_KEY`
+
+### Generate a Video
+
+**Option 1: From Topic (Quick)**
+
+```bash
+python -m app.generate --topic "Apple Inc stock" --create-video
+```
+
+**Option 2: From JSON Input**
+
+```bash
+# Create input file
+cat > inputs/apple.json << 'EOF'
+{
+  "topic": "Apple Inc stock",
+  "facts": [
+    "Founded in 1976 by Steve Jobs and Steve Wozniak",
+    "Stock was $31 in 2014, now over $227",
+    "Most valuable company on Earth"
+  ],
+  "news": [],
+  "target_seconds": 60,
+  "mood": "informative"
+}
+EOF
+
+# Generate script and video
+python -m app.generate inputs/apple.json --create-video
+```
+
+**Option 3: From YAML Spec (Direct)**
+
+```bash
+python -m app.create videos/my_video.yaml
+```
+
+## Pipeline Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Agentic Script Pipeline                      │
+├─────────────────────────────────────────────────────────────┤
+│  Introduction → Development → Charts → Conclusion            │
+│       ↓                                                      │
+│  Revision → Visual Mapper → YAML Builder                     │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    Video Pipeline                            │
+├─────────────────────────────────────────────────────────────┤
+│  YAML → Footage Search → TTS → Arranger → Renderer → MP4    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Commands
+
+### Generate Script Only
+
+```bash
+python -m app.generate --topic "Tesla stock" --output videos/tesla.yaml
+```
+
+### Generate Script + Video
+
+```bash
+python -m app.generate inputs/topic.json --create-video
+```
+
+### Create Video from Existing YAML
+
+```bash
+python -m app.create videos/my_video.yaml
+python -m app.create videos/my_video.yaml --refresh  # Force re-download
+```
+
+### Legacy Pipeline (JSON input → Video)
 
 ```bash
 python -m app.cli \
   --input examples/sample_input.json \
   --out out/demo \
   --seconds 45 \
-  --mood excited \
-  --voice en-US-Neural2-J
+  --mood excited
 ```
 
-### Speech Control Modes
-
-The pipeline supports two modes for controlling speech intonation:
-
-**1. Rule-Based (Default)**
-
-- Automatic SSML enhancement
-- Emotion-based prosody (rate/pitch via Google SSML)
-- Keyword emphasis on financial terms
-- Natural pauses after punctuation
-
-**2. AI-Driven**
-
-- GPT-4o-mini suggests specific words to emphasize
-- AI determines pause durations between segments
-- More fine-grained control over delivery
-
-Enable AI-driven mode:
-
-```bash
-python -m app.cli \
-  --input examples/sample_input.json \
-  --out out/demo \
-  --ai-speech
-```
-
-Or set in `.env`:
+## Project Structure
 
 ```
-USE_AI_SPEECH_CONTROL=true
+Fiindo/
+├── app/
+│   ├── agents/           # Agentic script generation
+│   │   ├── introduction.py
+│   │   ├── development.py
+│   │   ├── charts.py
+│   │   ├── conclusion.py
+│   │   ├── revision.py
+│   │   └── visual_mapper.py
+│   ├── script_pipeline.py  # Agent orchestration
+│   ├── generate.py         # CLI for script generation
+│   ├── video_spec.py       # YAML → Video
+│   ├── create.py           # CLI for video creation
+│   ├── footage_search.py   # Stock video fetching
+│   ├── tts.py              # Google Cloud TTS
+│   ├── arranger.py         # Timing calculations
+│   └── renderer.py         # FFmpeg video rendering
+├── prompts/              # Prompt library (documentation)
+├── videos/               # YAML video specs
+├── inputs/               # JSON input files
+└── out/                  # Generated videos
 ```
 
-The output video is saved to `out/<name>/video.mp4` with `subtitles.srt` and a `manifest.json`.
+## YAML Spec Format
 
-### Notes
+```yaml
+title: "Apple Stock Explainer"
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/apple_story
+segments:
+  - text: "What if I told you a $10,000 investment turned into $70,000?"
+    emotion: curious
+    visuals:
+      - money cash dollars finance
 
-- Aspect: 9:16 vertical at 720x1280, 30fps
-- No financial advice: scripts are story-led and educational only
-- Visuals: Freepik search (video filter), fallback to Pixabay
-- TTS: Google Cloud TTS with SSML enhancement for natural intonation
-  - Natural pauses after punctuation (200-400ms)
-  - Emphasis on key financial terms
-  - Emotion-based prosody (rate/pitch variations)
-- Rendering: H.264 (CRF 20) + AAC 128k, seamless transitions
+  - text: "This is Apple. Started in a garage. Now worth three trillion."
+    emotion: serious
+    clips:
+      - tags:
+          - garage workshop vintage
+        trigger: "garage"
+      - tags:
+          - skyscraper modern corporate
+        trigger: "trillion"
+```
+
+## Prompts Library
+
+All agent prompts are documented in `/prompts/`:
+
+- [introduction.md](prompts/introduction.md)
+- [development.md](prompts/development.md)
+- [charts.md](prompts/charts.md)
+- [conclusion.md](prompts/conclusion.md)
+- [revision.md](prompts/revision.md)
+- [visual_mapper.md](prompts/visual_mapper.md)
+
+## Output
+
+Videos are saved to `out/<topic>/`:
+
+- `video.mp4` - Final rendered video (720x1280, 30fps)
+- `subtitles.srt` - Generated subtitles
+- `manifest.json` - Metadata
+
+## Configuration
+
+**Voice Options** (Google TTS):
+
+- `en-US-Studio-O` (default, natural)
+- `en-US-Neural2-J` (energetic)
+- `en-US-Journey-D` (storytelling)
+
+**Voice Speed**: `slow`, `medium`, `fast`
+
+**Music**: `inspirational`, `dramatic`, `upbeat`
+
+## Technical Notes
+
+- Aspect ratio: 9:16 vertical (720x1280)
+- FPS: 30
+- Codec: H.264 (CRF 20) + AAC 128k
+- TTS: Google Cloud with SSML enhancement
+- Footage: Cached in `tmp/videos/` with tag-based hashing

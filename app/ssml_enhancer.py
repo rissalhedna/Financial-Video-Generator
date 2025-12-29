@@ -74,7 +74,7 @@ def _get_emotion_prosody(emotion: str, intensity: float = 1.0, disable_pitch: bo
     elif emotion == "dramatic":
         rate_pct = 85
         pitch = "-1.5st"
-        volume = "loud" # Dramatic needs power even if slow
+        volume = "loud"  # Dramatic needs power even if slow
     elif emotion == "curious":
         rate_pct = 105
         pitch = "+1st"
@@ -104,8 +104,10 @@ def _get_emotion_prosody(emotion: str, intensity: float = 1.0, disable_pitch: bo
     
     tags = []
     tags.append(f'rate="{int(final_rate_pct)}%"')
-    if pitch != "0st" and not disable_pitch: tags.append(f'pitch="{pitch}"')
-    if volume != "default": tags.append(f'volume="{volume}"')
+    if pitch != "0st" and not disable_pitch:
+        tags.append(f'pitch="{pitch}"')
+    if volume != "default":
+        tags.append(f'volume="{volume}"')
     
     if not tags:
         return "", ""
@@ -114,12 +116,12 @@ def _get_emotion_prosody(emotion: str, intensity: float = 1.0, disable_pitch: bo
 
 
 def enhance_narration_with_ssml(text: str, emotion: str = "neutral", use_ai_control: bool = False, 
-                                 emphasis_words: Optional[List[str]] = None, 
-                                 pause_after_ms: Optional[int] = None,
-                                 emotion_intensity: float = 1.0,
-                                 disable_prosody: bool = False,
-                                 disable_pitch: bool = False,
-                                 base_speed: str = "medium") -> str:
+                                emphasis_words: Optional[List[str]] = None, 
+                                pause_after_ms: Optional[int] = None,
+                                emotion_intensity: float = 1.0,
+                                disable_prosody: bool = False,
+                                disable_pitch: bool = False,
+                                base_speed: str = "medium") -> str:
     """
     Add SSML tags to narration text for more natural speech.
     Compatible with Google Cloud TTS.
@@ -169,8 +171,8 @@ def enhance_narration_with_ssml(text: str, emotion: str = "neutral", use_ai_cont
     # Apply emotion prosody
     if not disable_prosody:
         start_tag, end_tag = _get_emotion_prosody(emotion, emotion_intensity, disable_pitch=disable_pitch, base_speed_mult=speed_mult)
-    if start_tag:
-        enhanced = f"{start_tag}{enhanced}{end_tag}"
+        if start_tag:
+            enhanced = f"{start_tag}{enhanced}{end_tag}"
 
     return enhanced
 

@@ -65,7 +65,7 @@ class Script(BaseModel):
 
 class VisualAsset(BaseModel):
     segment_id: PositiveInt
-    source_url: str # Changed from HttpUrl to str to allow "cached" or file paths
+    source_url: str  # Changed from HttpUrl to str to allow "cached" or file paths
     file_path: str
     width: PositiveInt
     height: PositiveInt
