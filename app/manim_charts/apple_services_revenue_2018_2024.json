@@ -1,0 +1,26 @@
+{
+  "chart_id": "apple_services_revenue_2018_2024",
+  "chart_type": "bar",
+  "title": "Apple Services Revenue (2018–2024)",
+  "labels": [
+    "2018",
+    "2019",
+    "2020",
+    "2021",
+    "2022",
+    "2023",
+    "2024"
+  ],
+  "values": [
+    37.2,
+    46.3,
+    53.8,
+    68.4,
+    78.1,
+    85.0,
+    93.2
+  ],
+  "x_axis_label": "Year",
+  "y_axis_label": "Revenue (USD, billions)"
+}
+

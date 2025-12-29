@@ -1,0 +1,20 @@
+{
+  "chart_id": "apple_revenue_by_product_2024",
+  "chart_type": "pie",
+  "title": "Apple Revenue by Product Category (2024)",
+  "labels": [
+    "iPhone",
+    "Mac",
+    "iPad",
+    "Wearables & Home",
+    "Services"
+  ],
+  "values": [
+    52,
+    10,
+    8,
+    12,
+    18
+  ]
+}
+
