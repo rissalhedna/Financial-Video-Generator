@@ -7,10 +7,14 @@ def load_chart_json(path: str) -> dict:
         return json.load(f)
 
 
-def render_chart_from_data(data: dict) -> str:
+def render_chart_from_data(data: dict, transparent: bool = False) -> str:
     """
     Dispatch to the appropriate chart rendering function based on `chart_type`.
     Supported types: 'line', 'pie', 'bar'. Raises ValueError for unknown types.
+    
+    Args:
+        data: Chart data dictionary
+        transparent: If True, render with transparent background (for overlay on blurred video)
     """
     chart_type = data.get("chart_type")
 
@@ -21,12 +25,14 @@ def render_chart_from_data(data: dict) -> str:
             title=data.get("title", "Line Chart"),
             x_axis_label=data.get("x_axis_label"),
             y_axis_label=data.get("y_axis_label"),
+            transparent=transparent,
         )
     elif chart_type == "pie":
         return render_pie_chart(
             labels=data["labels"],
             values=data["values"],
             title=data.get("title", "Pie Chart"),
+            transparent=transparent,
         )
     elif chart_type == "bar":
         return render_bar_chart(
@@ -35,6 +41,7 @@ def render_chart_from_data(data: dict) -> str:
             title=data.get("title", "Bar Chart"),
             x_axis_label=data.get("x_axis_label"),
             y_axis_label=data.get("y_axis_label"),
+            transparent=transparent,
         )
     else:
         raise ValueError(f"Unknown chart_type: {chart_type}")

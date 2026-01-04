@@ -23,6 +23,7 @@ class ChartData:
     values: List[float] = field(default_factory=list)
     x_axis_label: Optional[str] = None
     y_axis_label: Optional[str] = None
+    blur_background: bool = False  # If True, composite over blurred stock video
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -141,19 +142,27 @@ Return JSON with this format:
         
         return AgentOutput(segments=segments)
     
-    def generate_chart(self, chart_data: ChartData, output_path: Path) -> Optional[Path]:
+    def generate_chart(
+        self, 
+        chart_data: ChartData, 
+        output_path: Path,
+        background_video: Optional[Path] = None,
+    ) -> Optional[Path]:
         """
         Generate an animated chart video using manim.
         
         Args:
             chart_data: ChartData with type, labels, values, etc.
             output_path: Where to save the generated video
+            background_video: Optional stock video to use as blurred background
         
         Returns:
             Path to the generated chart video, or None on failure
         """
         try:
             from ..manim_charts.create_chart_from_json import render_chart_from_data
+            from ..manim_charts.chart_renderer import composite_chart_over_blurred_video
+            import shutil
             
             # Convert to dict format expected by manim renderer
             data = chart_data.to_dict()
@@ -161,14 +170,25 @@ Return JSON with this format:
             # Render the chart (returns path to generated video)
             video_path = render_chart_from_data(data)
             
-            if video_path and Path(video_path).exists():
-                # Copy to desired output path
-                import shutil
-                output_path.parent.mkdir(parents=True, exist_ok=True)
+            if not video_path or not Path(video_path).exists():
+                return None
+            
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # If blur_background is enabled and we have a background video, composite
+            if chart_data.blur_background and background_video and background_video.exists():
+                result = composite_chart_over_blurred_video(
+                    chart_video=video_path,
+                    background_video=str(background_video),
+                    output_path=str(output_path),
+                    blur_strength=25,
+                )
+                return Path(result) if result else None
+            else:
+                # Just copy the chart video
                 shutil.copy(video_path, output_path)
                 return output_path
             
-            return None
         except Exception as e:
             print(f"Warning: Chart generation failed: {e}")
             return None

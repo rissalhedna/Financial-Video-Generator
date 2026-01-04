@@ -30,6 +30,9 @@ class Settings(BaseModel):
     
     # TTS settings
     use_ai_speech_control: bool = Field(default_factory=lambda: os.getenv("USE_AI_SPEECH_CONTROL", "false").lower() == "true")
+    
+    # Chart settings
+    chart_blur_background: bool = Field(default_factory=lambda: os.getenv("CHART_BLUR_BACKGROUND", "true").lower() == "true")
 
     def ensure_valid(self) -> None:
         missing = []

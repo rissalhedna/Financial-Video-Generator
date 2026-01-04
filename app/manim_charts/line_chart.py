@@ -37,6 +37,7 @@ class LineChartScene(MovingCameraScene):
         title="Apple Stock (2014–2025)",
         x_axis_label=None,
         y_axis_label=None,
+        transparent=False,
         **kwargs,
     ):
         self.labels = labels
@@ -44,6 +45,7 @@ class LineChartScene(MovingCameraScene):
         self.chart_title = title
         self.x_axis_label_text = x_axis_label
         self.y_axis_label_text = y_axis_label
+        self.transparent_bg = transparent
         super().__init__(**kwargs)
 
     def construct(self):
@@ -157,7 +159,8 @@ class LineChartScene(MovingCameraScene):
         chart_group.shift(UP * 0.2)
 
         # ---------------- Animation ----------------
-        self.camera.background_color = WHITE
+        if not self.transparent_bg:
+            self.camera.background_color = WHITE
 
         # PHASE 1: Title, axes, X/Y labels, axis titles
         self.play(Write(title), run_time=0.7)

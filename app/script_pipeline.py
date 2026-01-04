@@ -104,13 +104,31 @@ def generate_script(
         chart_output_dir = Path(f"out/{topic_slug}/charts")
         chart_output_dir.mkdir(parents=True, exist_ok=True)
         
+        # Check if blur background is enabled
+        from .config import get_settings
+        settings = get_settings()
+        use_blur_bg = settings.chart_blur_background
+        
         for seg in charts_output.segments:
             if isinstance(seg, ChartSegmentOutput) and seg.chart_data:
                 chart_path = chart_output_dir / f"chart_{hash(seg.text) % 100000}.mp4"
-                result = charts_agent.generate_chart(seg.chart_data, chart_path)
+                
+                # Enable blur background in chart data if setting is on
+                if use_blur_bg:
+                    seg.chart_data.blur_background = True
+                    
+                    # Try to find a stock video for background
+                    import glob
+                    stock_videos = glob.glob("tmp/videos/*.mp4")
+                    bg_video = Path(stock_videos[0]) if stock_videos else None
+                else:
+                    bg_video = None
+                
+                result = charts_agent.generate_chart(seg.chart_data, chart_path, background_video=bg_video)
                 if result:
                     chart_video_paths.append(str(result))
-                    print(f"📊 Generated chart: {result.name}")
+                    bg_info = " (with blurred bg)" if use_blur_bg and bg_video else ""
+                    print(f"📊 Generated chart: {result.name}{bg_info}")
         
         context.previous_segments.extend(charts_output.to_dicts())
         pbar.update(1)

@@ -19,5 +19,6 @@ tmp/
 .idea/
 .vscode/
 
-# generated media
-app/manim_charts/media
+# Generated media (manim outputs)
+media/
+app/manim_charts/media/

@@ -28,12 +28,13 @@ config.pixel_height = 1920
 # Manim scene for bar chart
 # ============================================================
 class BarChartScene(Scene):
-    def __init__(self, labels, values, title, x_axis_label=None, y_axis_label=None, **kwargs):
+    def __init__(self, labels, values, title, x_axis_label=None, y_axis_label=None, transparent=False, **kwargs):
         self.labels = labels
         self.values = values
         self.chart_title = title
         self.x_axis_label_text = x_axis_label
         self.y_axis_label_text = y_axis_label
+        self.transparent_bg = transparent
         super().__init__(**kwargs)
 
     def construct(self):
@@ -103,7 +104,8 @@ class BarChartScene(Scene):
             color=CUSTOM_BLUE_1,
         ).to_edge(UP)
 
-        self.camera.background_color = WHITE
+        if not self.transparent_bg:
+            self.camera.background_color = WHITE
 
         # ---------------- Animation ----------------
         self.play(Write(title), run_time=0.6)

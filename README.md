@@ -8,7 +8,8 @@ Generate short-form financial videos with AI-generated scripts, stock footage, a
 - **Stock Footage Search**: Pexels, Pixabay, Freepik integration
 - **Google Cloud TTS**: Natural voice synthesis with SSML
 - **Word-Level Visual Sync**: Clips switch at trigger words
-- **Chart Placeholders**: Ready for future chart generation
+- **Animated Charts**: Manim-powered line, bar, and pie charts with blurred video backgrounds
+- **Context-Aware Visuals**: AI selects business-appropriate stock footage (not literal word matching)
 
 ## Quick Start
 
@@ -204,6 +205,17 @@ Videos are saved to `out/<topic>/`:
 **Voice Speed**: `slow`, `medium`, `fast`
 
 **Music**: `inspirational`, `dramatic`, `upbeat`
+
+**Chart Settings** (in `.env`):
+
+- `CHART_BLUR_BACKGROUND=true` - Composite charts over blurred stock video (default: true)
+- `CHART_BLUR_BACKGROUND=false` - White background for charts
+
+**Chart Types** (auto-selected by AI):
+
+- `line` - For time series data (stock prices, revenue over time)
+- `bar` - For comparisons (revenue by year, quarterly earnings)
+- `pie` - For proportions (revenue by product category)
 
 ## Technical Notes
 

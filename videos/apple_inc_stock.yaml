@@ -4,61 +4,63 @@ voice_speed: medium
 music: inspirational
 output_dir: out/apple_inc_stock
 segments:
-- text: What if I told you Apple's stock isn't just about devices?
+- text: Imagine a world without Apple...
   emotion: curious
   clips:
   - tags:
-    - smartphone modern technology
-    trigger: devices
-- text: See the world of finance through a tech titan's perspective.
+    - empty tech workspace office
+    trigger: world without Apple
+- text: Hard to picture, right?
   emotion: curious
   clips:
   - tags:
-    - city skyline futuristic
-    trigger: world
-- text: Apple's stock reflects innovation that goes beyond gadgets.
+    - person thinking at desk
+    trigger: hard to picture
+- text: Let's dive into the story behind its iconic stock!
   emotion: informative
   clips:
   - tags:
-    - innovation technology abstract
-    trigger: innovation
-- text: Their ecosystem creates a loyal consumer base,
+    - financial analyst reviewing data
+    trigger: dive into
+- text: Apple began in a garage and has grown into a tech giant.
   emotion: informative
   clips:
   - tags:
-    - diverse people smiling
-    trigger: loyal
-- text: driving investor interest with future potential.
-  emotion: impactful
+    - modern tech office exterior
+    trigger: grown into
+- text: Its stock symbolizes innovation.
+  emotion: informative
   clips:
   - tags:
-    - investor meeting handshake
-    trigger: investor
+    - stock market display innovation
+    trigger: stock symbolizes
+- text: From the first iPhone to its latest breakthroughs,
+  emotion: informative
+  clips:
+  - tags:
+    - historical tech product display
+    trigger: first iPhone
 - text: >-
-    In 2010, Apple's stock price was just $9; now, it stands at $175, showcasing a
-    staggering rise.
+    the stock value has mirrored its innovative journey, soaring from $7 in 2007 to
+    an impressive $190 in 2023.
   emotion: dramatic
-  on_screen_text: "$9 \x12 $175 (2010-2023)"
-  chart_video: out/apple_inc_stock/charts/chart_163.mp4
-- text: That's an impressive 1800% increase over 13 years!
-  emotion: dramatic
-  on_screen_text: 1800% Increase
-  chart_video: out/apple_inc_stock/charts/chart_7376.mp4
-- text: So, what does this mean for Apple's future?
+  on_screen_text: "$7 \x0150 $190 (2007-2023)"
+  chart_video: out/apple_inc_stock/charts/chart_45083.mp4
+- text: As Apple continues to push boundaries, what lies ahead?
   emotion: curious
   clips:
   - tags:
-    - future technology concept
-    trigger: future
-- text: As technology evolves, can they continue to lead?
+    - businessman thinking future
+    trigger: what lies ahead
+- text: Will its stock reflect the next wave of groundbreaking technology?
   emotion: curious
   clips:
   - tags:
-    - evolving technology abstract
-    trigger: evolves
-- text: The journey of Apple's stock is a testament to their innovation.
+    - futuristic technology display
+    trigger: groundbreaking technology
+- text: The story of Apple's stock is far from over.
   emotion: impactful
   clips:
   - tags:
-    - stock growth timeline
-    trigger: journey
+    - timeline graphics stock progression
+    trigger: far from over

@@ -28,10 +28,11 @@ config.pixel_height = 1920
 # Manim scene for pie chart
 # ============================================================
 class PieChartScene(Scene):
-    def __init__(self, labels, values, title="Pie Chart", **kwargs):
+    def __init__(self, labels, values, title="Pie Chart", transparent=False, **kwargs):
         self.labels = labels
         self.values = values
         self.chart_title = title
+        self.transparent_bg = transparent
         super().__init__(**kwargs)
 
     def construct(self):
@@ -84,7 +85,8 @@ class PieChartScene(Scene):
         legend = legend_items.arrange(DOWN, aligned_edge=LEFT, buff=0.25)
         legend.next_to(pie_chart_group, RIGHT, buff=1.0).shift(UP * 0.5)
 
-        self.camera.background_color = WHITE
+        if not self.transparent_bg:
+            self.camera.background_color = WHITE
 
         # ---Animation---
         self.play(Write(title), run_time=1.0)
