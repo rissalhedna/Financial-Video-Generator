@@ -27,6 +27,7 @@ class VisualSegmentOutput:
     on_screen_text: Optional[str] = None
     is_chart_placeholder: bool = False
     clips: List[VisualClipOutput] = field(default_factory=list)
+    chart_video_path: Optional[str] = None  # Pre-generated chart video
 
 
 class VisualMapperAgent:

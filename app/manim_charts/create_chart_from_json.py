@@ -1,7 +1,5 @@
 import json
-from chart_renderer import render_line_chart
-from chart_renderer import render_pie_chart
-from chart_renderer import render_bar_chart
+from .chart_renderer import render_line_chart, render_pie_chart, render_bar_chart
 
 def load_chart_json(path: str) -> dict:
     """Read a JSON file from the given path and return the parsed Python dict."""

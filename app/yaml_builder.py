@@ -45,8 +45,11 @@ def build_yaml_spec(
         if seg.on_screen_text:
             segment_dict["on_screen_text"] = seg.on_screen_text
         
+        # If we have a pre-generated chart video, use it directly
+        if seg.chart_video_path:
+            segment_dict["chart_video"] = seg.chart_video_path
         # Add visual clips or simple visuals
-        if seg.clips:
+        elif seg.clips:
             if len(seg.clips) == 1 and not seg.clips[0].trigger:
                 # Single clip without trigger - use simple visuals format
                 segment_dict["visuals"] = seg.clips[0].tags

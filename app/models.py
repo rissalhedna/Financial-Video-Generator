@@ -36,6 +36,7 @@ class Segment(BaseModel):
     bgm_mood: Optional[str] = None
     emphasis_words: Optional[List[str]] = None  # Used for SSML <emphasis> tags
     pause_after_ms: Optional[int] = None  # AI-suggested pause duration after segment (works with <break> tag)
+    chart_video: Optional[str] = None  # Pre-generated chart video path (skips stock video fetch)
 
     @validator("end_ms")
     def validate_duration(cls, v: int, values: dict) -> int:

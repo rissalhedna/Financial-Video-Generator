@@ -168,9 +168,27 @@ def fetch_visuals_for_script(
     video_cache = VideoCache(cache_dir)
     fetcher = VideoFetcher(cache=video_cache)
     
-    # Build task list
+    # Build task list (skip segments with pre-generated chart videos)
     tasks = []
+    chart_video_results: Dict[int, List[Tuple[int, VisualAsset]]] = {}
+    
     for seg in script.segments:
+        # If segment has a pre-generated chart video, use it directly
+        if seg.chart_video and Path(seg.chart_video).exists():
+            from .utils.download import get_video_info
+            info = get_video_info(Path(seg.chart_video))
+            w, h = info if info else (1080, 1920)
+            asset = VisualAsset(
+                segment_id=seg.id,
+                source_url="chart",
+                file_path=seg.chart_video,
+                width=w,
+                height=h,
+                duration_ms=seg.duration_ms,
+            )
+            chart_video_results[seg.id] = [(0, asset)]
+            continue
+        
         if seg.visual_clips:
             for clip_idx, clip in enumerate(seg.visual_clips):
                 dest = get_cache_path(cache_dir, seg.id, clip_idx, clip.tags)
@@ -270,6 +288,10 @@ def fetch_visuals_for_script(
                 except Exception as e:
                     task = futures[future]
                     print(f"Failed: segment {task['seg_id']}: {e}")
+    
+    # Merge chart video results with cached results
+    for seg_id, clip_list in chart_video_results.items():
+        cached_results[seg_id] = clip_list
     
     # Sort clips and convert to final format
     assets: Dict[int, List[VisualAsset]] = {}

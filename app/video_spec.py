@@ -38,6 +38,7 @@ class SegmentSpec:
     visuals: List[str] = field(default_factory=list)
     clips: Optional[List[Dict[str, Any]]] = None  # Multi-clip support
     duration_seconds: Optional[float] = None  # Auto-calculated if not specified
+    chart_video: Optional[str] = None  # Pre-generated chart video path
     
     def to_segment(self, segment_id: int, start_ms: int) -> Segment:
         """Convert to internal Segment model."""
@@ -70,6 +71,7 @@ class SegmentSpec:
             visual_tags=self.visuals,
             visual_clips=visual_clips,
             emotion=self.emotion,
+            chart_video=self.chart_video,
         )
 
 
@@ -94,6 +96,7 @@ class VideoSpec:
                 visuals=s.get("visuals", []),
                 clips=s.get("clips"),
                 duration_seconds=s.get("duration"),
+                chart_video=s.get("chart_video"),
             )
             for s in data.get("segments", [])
         ]

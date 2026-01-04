@@ -114,4 +114,4 @@ class BarChartScene(Scene):
             run_time=1.8,
         )
 
-        self.wait(0.5)
+        self.wait(3.0)

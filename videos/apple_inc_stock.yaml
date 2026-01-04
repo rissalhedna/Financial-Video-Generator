@@ -1,81 +1,64 @@
-title: Apple Inc stock Explainer
+title: Apple Inc Stock Explainer
 voice_id: en-US-Studio-O
-voice_speed: fast
+voice_speed: medium
 music: inspirational
 output_dir: out/apple_inc_stock
 segments:
-- text: Imagine you're holding a tiny fruit with the power to change the world.
+- text: What if I told you Apple's stock isn't just about devices?
   emotion: curious
-  clips:
-  - tags:
-    - hand holding apple
-    trigger: fruit
-- text: No, we're not talking about apples you eat, but Apple Inc stock!
-  emotion: dramatic
-  clips:
-  - tags:
-    - stock market trading
-    trigger: stock
-- text: Ever wondered how this tech giant became a household name?
-  emotion: curious
-  clips:
-  - tags:
-    - city skyline modern
-    trigger: giant
-- text: Apple started in a humble garage and quickly grew.
-  emotion: informative
-  clips:
-  - tags:
-    - garage workshop vintage
-    trigger: garage
-- text: With innovations like the iPhone, they've revolutionized tech.
-  emotion: impactful
   clips:
   - tags:
     - smartphone modern technology
-    trigger: innovations
-- text: Their sleek designs and features keep us hooked.
+    trigger: devices
+- text: See the world of finance through a tech titan's perspective.
+  emotion: curious
+  clips:
+  - tags:
+    - city skyline futuristic
+    trigger: world
+- text: Apple's stock reflects innovation that goes beyond gadgets.
   emotion: informative
   clips:
   - tags:
-    - sleek device design
-    trigger: designs
-- text: Beyond gadgets, Apple's influence extends to software, services, and more.
+    - innovation technology abstract
+    trigger: innovation
+- text: Their ecosystem creates a loyal consumer base,
   emotion: informative
   clips:
   - tags:
-    - software development screen
-    trigger: software
-- text: In 2014, Apple shares were $31, and today they've soared to over $227.
-  emotion: dramatic
-  on_screen_text: "$31 \0 $227 (2014-2024)"
+    - diverse people smiling
+    trigger: loyal
+- text: driving investor interest with future potential.
+  emotion: impactful
   clips:
   - tags:
-    - chart graph data visualization
-    trigger: '2014'
+    - investor meeting handshake
+    trigger: investor
 - text: >-
-    This is a staggering increase of over 630%, reflecting their relentless innovation.
-  emotion: impactful
-  on_screen_text: +630% growth
-  clips:
-  - tags:
-    - stock market screen trading
-    trigger: staggering
-- text: So, could this small fruit hold the key to our tech-driven future?
+    In 2010, Apple's stock price was just $9; now, it stands at $175, showcasing a
+    staggering rise.
+  emotion: dramatic
+  on_screen_text: "$9 \x12 $175 (2010-2023)"
+  chart_video: out/apple_inc_stock/charts/chart_163.mp4
+- text: That's an impressive 1800% increase over 13 years!
+  emotion: dramatic
+  on_screen_text: 1800% Increase
+  chart_video: out/apple_inc_stock/charts/chart_7376.mp4
+- text: So, what does this mean for Apple's future?
   emotion: curious
   clips:
   - tags:
-    - futuristic technology concept
+    - future technology concept
     trigger: future
-- text: Apple's journey reminds us of the power of transformation and innovation.
-  emotion: impactful
-  clips:
-  - tags:
-    - technology innovation concept
-    trigger: journey
-- text: The question is, what will they redefine next in our digital world?
+- text: As technology evolves, can they continue to lead?
   emotion: curious
   clips:
   - tags:
-    - digital world exploration
-    trigger: redefine
+    - evolving technology abstract
+    trigger: evolves
+- text: The journey of Apple's stock is a testament to their innovation.
+  emotion: impactful
+  clips:
+  - tags:
+    - stock growth timeline
+    trigger: journey

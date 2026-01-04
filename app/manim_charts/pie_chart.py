@@ -112,4 +112,5 @@ class PieChartScene(Scene):
         # Legend
         self.play(FadeIn(legend, shift=LEFT * 0.2), run_time=0.6, rate_func=smooth)
 
-        self.wait(0.5)
+        # Hold final frame for 3 seconds so viewer can read the chart
+        self.wait(3.0)

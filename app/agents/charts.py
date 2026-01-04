@@ -21,8 +21,8 @@ class ChartData:
     title: str = ""
     labels: List[str] = field(default_factory=list)
     values: List[float] = field(default_factory=list)
-    color: str = "#00C853"  # Green by default
-    duration_seconds: float = 5.0
+    x_axis_label: Optional[str] = None
+    y_axis_label: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -30,8 +30,8 @@ class ChartData:
             "title": self.title,
             "labels": self.labels,
             "values": self.values,
-            "color": self.color,
-            "duration_seconds": self.duration_seconds,
+            "x_axis_label": self.x_axis_label,
+            "y_axis_label": self.y_axis_label,
         }
 
 
@@ -39,6 +39,7 @@ class ChartData:
 class ChartSegmentOutput(SegmentOutput):
     """Extended segment output with chart data."""
     chart_data: Optional[ChartData] = None
+    chart_video_path: Optional[str] = None
 
 
 class ChartsAgent(ScriptAgent):
@@ -85,6 +86,11 @@ STRICT RULES:
 - Flow naturally from previous segments
 - Focus on storytelling, not chart announcements
 
+CHART TYPE GUIDE:
+- "line": For time series, trends over time (e.g. stock price history, revenue growth)
+- "bar": For comparing values across categories (e.g. revenue by year, earnings by quarter)
+- "pie": For showing proportions/percentages (e.g. revenue breakdown by product)
+
 Return JSON with this format:
 {
   "segments": [
@@ -95,8 +101,10 @@ Return JSON with this format:
       "chart_data": {
         "chart_type": "line",
         "title": "Stock Price",
-        "labels": ["2014", "2024"],
-        "values": [31, 227]
+        "labels": ["2014", "2018", "2022", "2024"],
+        "values": [31, 45, 150, 227],
+        "x_axis_label": "Year",
+        "y_axis_label": "Price (USD)"
       }
     }
   ]
@@ -118,8 +126,8 @@ Return JSON with this format:
                     title=cd.get("title", ""),
                     labels=cd.get("labels", []),
                     values=cd.get("values", []),
-                    color=cd.get("color", "#00C853"),
-                    duration_seconds=seg.get("duration_estimate_seconds", 5.0),
+                    x_axis_label=cd.get("x_axis_label"),
+                    y_axis_label=cd.get("y_axis_label"),
                 )
             
             segment = ChartSegmentOutput(
@@ -133,50 +141,37 @@ Return JSON with this format:
         
         return AgentOutput(segments=segments)
     
-    # =========================================================================
-    # CHART GENERATION - PLACEHOLDER
-    # Fill in this method when ready to generate actual charts
-    # =========================================================================
-    
-    def generate_chart(self, chart_data: ChartData, output_path: Path) -> Path:
+    def generate_chart(self, chart_data: ChartData, output_path: Path) -> Optional[Path]:
         """
-        Generate an animated chart video from data.
-        
-        TODO: Implement chart generation using matplotlib/plotly + moviepy
+        Generate an animated chart video using manim.
         
         Args:
             chart_data: ChartData with type, labels, values, etc.
             output_path: Where to save the generated video
         
         Returns:
-            Path to the generated chart video
-        
-        Example implementation:
-        ```python
-        import matplotlib.pyplot as plt
-        from matplotlib.animation import FuncAnimation
-        
-        fig, ax = plt.subplots()
-        
-        if chart_data.chart_type == "line":
-            # Animate line drawing
-            line, = ax.plot([], [], color=chart_data.color, linewidth=3)
-            ax.set_xlim(0, len(chart_data.values))
-            ax.set_ylim(0, max(chart_data.values) * 1.1)
-            
-            def animate(frame):
-                line.set_data(range(frame+1), chart_data.values[:frame+1])
-                return line,
-            
-            anim = FuncAnimation(fig, animate, frames=len(chart_data.values))
-            anim.save(output_path, fps=30)
-        
-        return output_path
-        ```
+            Path to the generated chart video, or None on failure
         """
-        # PLACEHOLDER: Return None to signal "use stock video fallback"
-        # When implemented, return the path to the generated chart video
-        return None
+        try:
+            from ..manim_charts.create_chart_from_json import render_chart_from_data
+            
+            # Convert to dict format expected by manim renderer
+            data = chart_data.to_dict()
+            
+            # Render the chart (returns path to generated video)
+            video_path = render_chart_from_data(data)
+            
+            if video_path and Path(video_path).exists():
+                # Copy to desired output path
+                import shutil
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(video_path, output_path)
+                return output_path
+            
+            return None
+        except Exception as e:
+            print(f"Warning: Chart generation failed: {e}")
+            return None
     
     def get_chart_video(self, segment: ChartSegmentOutput, output_dir: Path) -> Optional[Path]:
         """

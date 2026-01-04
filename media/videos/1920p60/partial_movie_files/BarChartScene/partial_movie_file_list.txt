@@ -1,0 +1,5 @@
+# This file is used internally by FFMPEG.
+file 'file:/Users/rissal.hedna/Desktop/Fiindo/media/videos/1920p60/partial_movie_files/BarChartScene/3521533657_4075650221_223132457.mp4'
+file 'file:/Users/rissal.hedna/Desktop/Fiindo/media/videos/1920p60/partial_movie_files/BarChartScene/544699160_2637039020_499489247.mp4'
+file 'file:/Users/rissal.hedna/Desktop/Fiindo/media/videos/1920p60/partial_movie_files/BarChartScene/544699160_3067964732_3217384852.mp4'
+file 'file:/Users/rissal.hedna/Desktop/Fiindo/media/videos/1920p60/partial_movie_files/BarChartScene/544699160_3394108396_2744502977.mp4'

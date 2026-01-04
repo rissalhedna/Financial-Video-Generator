@@ -18,6 +18,7 @@ from .agents import (
     VisualMapperAgent,
     VisualSegmentOutput,
 )
+from .agents.charts import ChartSegmentOutput
 from .models import InputData
 from .yaml_builder import build_yaml_spec, save_yaml_spec
 
@@ -75,6 +76,9 @@ def generate_script(
     revision_agent = RevisionAgent()
     visual_mapper = VisualMapperAgent()
     
+    # Build topic slug early (needed for chart output dir)
+    topic_slug = input_data.topic.lower().replace(" ", "_").replace(".", "")[:30]
+    
     print(f"🎬 Generating script for: {input_data.topic}")
     print(f"📊 Target duration: {total_target}s")
     
@@ -91,9 +95,23 @@ def generate_script(
         context.previous_segments.extend(dev_output.to_dicts())
         pbar.update(1)
         
-        # Step 3: Charts
+        # Step 3: Charts (includes chart video generation)
         pbar.set_description("Charts")
         charts_output = charts_agent.run(context)
+        
+        # Generate chart videos for segments with chart_data
+        chart_video_paths: List[str] = []  # List of chart video paths (in order)
+        chart_output_dir = Path(f"out/{topic_slug}/charts")
+        chart_output_dir.mkdir(parents=True, exist_ok=True)
+        
+        for seg in charts_output.segments:
+            if isinstance(seg, ChartSegmentOutput) and seg.chart_data:
+                chart_path = chart_output_dir / f"chart_{hash(seg.text) % 100000}.mp4"
+                result = charts_agent.generate_chart(seg.chart_data, chart_path)
+                if result:
+                    chart_video_paths.append(str(result))
+                    print(f"📊 Generated chart: {result.name}")
+        
         context.previous_segments.extend(charts_output.to_dicts())
         pbar.update(1)
         
@@ -112,13 +130,20 @@ def generate_script(
         # Step 6: Visual Mapping
         pbar.set_description("Visual Mapping")
         visual_segments = visual_mapper.run(revised_segments, input_data.topic)
+        
+        # Attach chart video paths to segments marked as chart placeholders
+        chart_idx = 0
+        for seg in visual_segments:
+            if seg.is_chart_placeholder and chart_idx < len(chart_video_paths):
+                seg.chart_video_path = chart_video_paths[chart_idx]
+                chart_idx += 1
+        
         pbar.update(1)
     
     # Build title
     title = f"{input_data.topic} Explainer"
     
-    # Determine output directory
-    topic_slug = input_data.topic.lower().replace(" ", "_").replace(".", "")[:30]
+    # Output directory (topic_slug already defined above)
     output_dir = f"out/{topic_slug}"
     
     # Build YAML spec

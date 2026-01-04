@@ -178,4 +178,5 @@ class LineChartScene(MovingCameraScene):
             pops.append(AnimationGroup(FadeIn(d, scale=0.8), FadeIn(v, scale=0.8)))
         self.play(LaggedStart(*pops, lag_ratio=0.08), run_time=2.0)
 
-        self.wait(0.8)
+        # Hold final frame for 3 seconds so viewer can read the chart
+        self.wait(3.0)
