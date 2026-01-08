@@ -15,6 +15,9 @@ class Settings(BaseModel):
     freepik_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("FREEPIK_API_KEY", ""))
     pixabay_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("PIXABAY_API_KEY"))
     pexels_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("PEXELS_API_KEY"))
+    # CDN settings
+    cdn_api_url: Optional[str] = Field(default_factory=lambda: os.getenv("CDN_API_URL"))
+    cdn_api_key: Optional[str] = Field(default_factory=lambda: os.getenv("CDN_API_KEY"))
 
     # Defaults
     aspect_ratio: str = Field(default_factory=lambda: os.getenv("ASPECT", "9:16"))
@@ -44,7 +47,12 @@ class Settings(BaseModel):
         # but we should check at least one is present
         if not any([self.freepik_api_key, self.pixabay_api_key, self.pexels_api_key]):
             missing.append("ONE OF: FREEPIK_API_KEY, PIXABAY_API_KEY, PEXELS_API_KEY")
-        
+        # validate cdn
+        if not self.cdn_api_url:
+            missing.append("CDN_API_URL")
+        if not self.cdn_api_key:
+            missing.append("CDN_API_KEY")
+
         if missing:
             raise ValueError(
                 f"Missing required environment variables: {', '.join(missing)}. "

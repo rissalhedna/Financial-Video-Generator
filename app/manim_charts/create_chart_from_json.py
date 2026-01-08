@@ -63,10 +63,10 @@ def render_chart_from_json_file(path: str) -> str:
 
 if __name__ == "__main__":
     # Specify the path to the JSON file to render.
-    json_path = "apple_stock_2014_2025.json" #line
+    #json_path = "apple_stock_2014_2025.json" #line
     #json_path = "apple_services_revenue_2018_2024.json" #bar
     #json_path = "apple_revenue_by_product.json" #pie
-
+    json_path = "../CDN/aapl_us_Y1_20260108_204225.json"
     videopath = render_chart_from_json_file(json_path)
     print("Video path:")
     print(videopath)
