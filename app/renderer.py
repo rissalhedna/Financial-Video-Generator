@@ -50,7 +50,8 @@ def render(plan: RenderPlan) -> Path:
     grouped = _group_segments_by_id(plan.segments)
     segment_ids = sorted(grouped.keys())
     
-    inputs = []
+    inputs: List[str] = []
+    inputs_meta: List[Dict[str, str]] = []  # track type and path for each input (video/audio)
     filter_parts = []
     input_idx = 0
     segment_outputs = []
@@ -116,6 +117,10 @@ def render(plan: RenderPlan) -> Path:
             filter_parts.append(f"[{a_input_idx}:a]{','.join(a_filters)}[{a_label}]")
             
             inputs.extend(["-i", clip.video_path, "-i", audio_path])
+            inputs_meta.extend([
+                {"type": "video", "path": clip.video_path},
+                {"type": "audio", "path": audio_path},
+            ])
             input_idx += 2
             segment_outputs.append((v_label, a_label))
             
@@ -137,6 +142,7 @@ def render(plan: RenderPlan) -> Path:
             
             a_input_idx = input_idx
             inputs.extend(["-i", audio_path])
+            inputs_meta.append({"type": "audio", "path": audio_path})
             input_idx += 1
             
             for clip_idx, clip in enumerate(clips):
@@ -145,6 +151,7 @@ def render(plan: RenderPlan) -> Path:
                 
                 v_input_idx = input_idx
                 inputs.extend(["-i", clip.video_path])
+                inputs_meta.append({"type": "video", "path": clip.video_path})
                 input_idx += 1
                 
                 v_filters = [
@@ -197,9 +204,21 @@ def render(plan: RenderPlan) -> Path:
     concat_inputs = "".join([f"[{v}][{a}]" for v, a in segment_outputs])
     filter_parts.append(f"{concat_inputs}concat=n={n_segments}:v=1:a=1[vout][a_voice]")
 
+    # Burn-in subtitles if provided
+    v_output_label = "vout"
+    if plan.srt_path:
+        # Use libass via subtitles filter to burn subtitles onto video.
+        # Use a very small font size and light outline as requested.
+        srt_path_escaped = str(plan.srt_path).replace("'", r"\'")
+        filter_parts.append(
+            f"[vout]subtitles='{srt_path_escaped}':force_style='FontName=Arial,FontSize=10,Outline=1,BorderStyle=1,MarginV=40'[vsub]"
+        )
+        v_output_label = "vsub"
+
     # Background Music
     if plan.bgm_path:
         inputs.extend(["-i", plan.bgm_path])
+        inputs_meta.append({"type": "audio", "path": plan.bgm_path})
         bgm_stream_idx = input_idx
 
         total_dur = 0
@@ -214,27 +233,56 @@ def render(plan: RenderPlan) -> Path:
         filter_parts.append(f"[a_voice][bgm_ready]amix=inputs=2:duration=first:weights=1 0.7[aout]")
     else:
         filter_parts.append(f"[a_voice]anull[aout]")
-    
+
+    # Determine audio mapping: prefer filter-generated [aout] label if present.
+    # If not present, map the first audio input (fallback) to ensure final file has audio.
+    audio_map_label = None
+    if any("[aout]" in p for p in filter_parts):
+        audio_map_label = "[aout]"
+    else:
+        # find first audio input index
+        audio_idx = None
+        for i, meta in enumerate(inputs_meta):
+            if meta.get("type") == "audio":
+                audio_idx = i
+                break
+        if audio_idx is not None:
+            audio_map_label = f"{audio_idx}:a"
+
     filter_complex = ";".join(filter_parts)
     
     cmd = [
         "ffmpeg", "-y",
         *inputs,
         "-filter_complex", filter_complex,
-        "-map", "[vout]",
-        "-map", "[aout]",
+        "-map", f"[{v_output_label}]",
+    ]
+
+    if audio_map_label:
+        cmd.extend(["-map", audio_map_label])
+
+    # Common encoding/output options
+    cmd.extend([
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-crf", "20",
         "-pix_fmt", "yuv420p",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-ar", "44100",
-        "-ac", "2",
+    ])
+
+    # Add audio encoding options only if an audio map was selected
+    if audio_map_label:
+        cmd.extend([
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-ar", "44100",
+            "-ac", "2",
+        ])
+
+    cmd.extend([
         "-r", str(plan.fps),
         "-movflags", "+faststart",
         str(out_path),
-    ]
+    ])
     
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:

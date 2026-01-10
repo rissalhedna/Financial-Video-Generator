@@ -47,6 +47,7 @@ def main(
         "--create-video", "-v", 
         help="Also create the video after generating script"
     ),
+    burn_subtitles: bool = typer.Option(True, "--burn-subtitles/--no-burn-subtitles", help="Whether to burn subtitles into the output video"),
     duration: int = typer.Option(
         60, 
         "--duration", "-d", 
@@ -101,6 +102,7 @@ def main(
                 input_data,
                 yaml_path=output_path,
                 force_refresh=refresh,
+                burn_subtitles=burn_subtitles,
             )
             typer.echo(f"\n✓ Video created: {video_path}")
         else:

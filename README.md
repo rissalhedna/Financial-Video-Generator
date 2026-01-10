@@ -114,6 +114,43 @@ python -m app.create videos/my_video.yaml
 python -m app.create videos/my_video.yaml --refresh  # Force re-download
 ```
 
+### UI Prototype (experimental)
+
+We scaffolded a minimal interactive prototype to visualize and step through the pipeline.
+
+Quick start (run backend + frontend in two terminals):
+
+```bash
+# Backend
+cd ui/backend
+pip install -r requirements.txt
+uvicorn app:app --reload --port 8001
+
+# Frontend (requires Node.js)
+cd ui/frontend
+npm install
+npm run dev
+```
+
+The current prototype shows a pipeline node list, an inspector panel, and a live logs area (SSE). It's intentionally minimal — next steps include integrating React Flow for the interactive graph, editable segments, and live video previews.
+
+### Subtitles / Burn-in
+
+By default Fiindo writes `subtitles.srt` to the output directory and will also _burn_ those subtitles into the final MP4. Subtitles are sized very small by default (font size 10) to avoid obscuring content, and timings are aligned to the actual synthesized audio (so subtitle changes match spoken audio). If you'd rather keep the separate SRT file and avoid overlaying text on the video, pass the `--no-burn-subtitles` flag to the CLI.
+
+Examples:
+
+```bash
+# Burn subtitles into video (default, very small font)
+python -m app.create videos/my_video.yaml
+
+# Do NOT burn subtitles (SRT is still written)
+python -m app.create videos/my_video.yaml --no-burn-subtitles
+
+# Generate+create video without burning subtitles
+python -m app.generate inputs/topic.json --create-video --no-burn-subtitles
+```
+
 ### Legacy Pipeline (JSON input → Video)
 
 ```bash

@@ -1,66 +1,84 @@
-title: Apple Inc Stock Explainer
+title: Apple Inc stock Explainer
 voice_id: en-US-Studio-O
 voice_speed: medium
 music: inspirational
 output_dir: out/apple_inc_stock
 segments:
-- text: Imagine a world without Apple...
+- text: What if I told you there's a company that's more than just sleek gadgets?
   emotion: curious
   clips:
   - tags:
-    - empty tech workspace office
-    trigger: world without Apple
-- text: Hard to picture, right?
-  emotion: curious
-  clips:
-  - tags:
-    - person thinking at desk
-    trigger: hard to picture
-- text: Let's dive into the story behind its iconic stock!
+    - corporate office building exterior
+    trigger: company
+- text: Picture the iconic apple logo as a symbol of innovation power.
   emotion: informative
   clips:
   - tags:
-    - financial analyst reviewing data
-    trigger: dive into
-- text: Apple began in a garage and has grown into a tech giant.
-  emotion: informative
-  clips:
-  - tags:
-    - modern tech office exterior
-    trigger: grown into
-- text: Its stock symbolizes innovation.
-  emotion: informative
-  clips:
-  - tags:
-    - stock market display innovation
-    trigger: stock symbolizes
-- text: From the first iPhone to its latest breakthroughs,
-  emotion: informative
-  clips:
-  - tags:
-    - historical tech product display
-    trigger: first iPhone
-- text: >-
-    the stock value has mirrored its innovative journey, soaring from $7 in 2007 to
-    an impressive $190 in 2023.
+    - technology office interior
+    trigger: innovation
+- text: Apple Inc. isn't just about products; it's reshaping entire industries.
   emotion: dramatic
-  on_screen_text: "$7 \x0150 $190 (2007-2023)"
-  chart_video: out/apple_inc_stock/charts/chart_45083.mp4
-- text: As Apple continues to push boundaries, what lies ahead?
-  emotion: curious
   clips:
   - tags:
-    - businessman thinking future
-    trigger: what lies ahead
-- text: Will its stock reflect the next wave of groundbreaking technology?
-  emotion: curious
-  clips:
-  - tags:
-    - futuristic technology display
-    trigger: groundbreaking technology
-- text: The story of Apple's stock is far from over.
+    - tech company conference room
+    trigger: industries
+- text: Apple's journey began in a garage and evolved into a tech titan.
   emotion: impactful
   clips:
   - tags:
-    - timeline graphics stock progression
-    trigger: far from over
+    - historical tech office
+    trigger: journey
+- text: It's revolutionized music and transformed communication.
+  emotion: informative
+  clips:
+  - tags:
+    - smartphone closeup
+    trigger: communication
+- text: Beyond that, Apple is forging the future with cutting-edge research.
+  emotion: impactful
+  clips:
+  - tags:
+    - research lab technology
+    trigger: research
+- text: This isn't merely about products; it's about shaping the digital age.
+  emotion: informative
+  clips:
+  - tags:
+    - data analytics dashboard
+    trigger: digital
+- text: >-
+    From 2007's iPhone debut, Apple's revenue has surged from $24 billion to an astounding
+    $400 billion today.
+  emotion: dramatic
+  on_screen_text: $24B → $400B (2007-Today)
+  chart_video: out/apple_inc_stock/charts/chart_52698.mp4
+- text: >-
+    Apple now commands a market cap of over $2.8 trillion, surpassing the GDP of many
+    countries.
+  emotion: impactful
+  on_screen_text: 'Market Cap: $2.8 Trillion'
+  chart_video: out/apple_inc_stock/charts/chart_52424.mp4
+- text: So, what's next for this tech behemoth?
+  emotion: curious
+  clips:
+  - tags:
+    - businessman thinking
+    trigger: next
+- text: As Apple continues to innovate, it's not just about today's gadgets anymore.
+  emotion: informative
+  clips:
+  - tags:
+    - innovative technology lab
+    trigger: innovate
+- text: Could it redefine the future once again?
+  emotion: curious
+  clips:
+  - tags:
+    - futuristic cityscape
+    trigger: future
+- text: Stay curious, because Apple's story is far from over.
+  emotion: curious
+  clips:
+  - tags:
+    - person researching computer
+    trigger: curious

@@ -19,6 +19,7 @@ def main(
     mood: Optional[str] = typer.Option(None, "--mood", "-m", help="Script mood (e.g., excited, serious)"),
     voice: Optional[str] = typer.Option(None, "--voice", "-v", help="Google Voice Name (e.g. en-US-Neural2-J)"),
     ai_speech: Optional[bool] = typer.Option(None, "--ai-speech", help="Enable AI-driven speech control (emphasis, pauses). Default: from .env USE_AI_SPEECH_CONTROL"),
+    burn_subtitles: bool = typer.Option(True, "--burn-subtitles/--no-burn-subtitles", help="Whether to burn subtitles into the output video"),
 ) -> None:
     """
     Run the AI Financial Video pipeline end-to-end.
@@ -44,7 +45,8 @@ def main(
             override_seconds=seconds, 
             mood=mood, 
             voice_id=voice,
-            use_ai_speech_control=ai_speech
+            use_ai_speech_control=ai_speech,
+            burn_subtitles=burn_subtitles,
         )
         typer.echo(f"✓ Done: {out_path}")
     except Exception as e:

@@ -1,0 +1,92 @@
+title: Tesla EV investments Explainer
+voice_id: en-US-Studio-O
+voice_speed: medium
+music: inspirational
+output_dir: out/tesla_ev_investments
+segments:
+- text: What if I told you the future of transportation is already here?
+  emotion: curious
+  clips:
+  - tags:
+    - futuristic city skyline
+    trigger: future
+- text: Imagine zipping through traffic in a sleek, silent vehicle.
+  emotion: informative
+  clips:
+  - tags:
+    - electric vehicle city road
+    trigger: zipping
+- text: Welcome to the world of Tesla's electric revolution!
+  emotion: dramatic
+  clips:
+  - tags:
+    - electric vehicle charging station
+    trigger: electric
+- text: Ever wondered how these cutting-edge cars are transforming the industry?
+  emotion: curious
+  clips:
+  - tags:
+    - automotive manufacturing line
+    trigger: transforming
+- text: Tesla isn't just building cars; it's crafting a vision.
+  emotion: informative
+  clips:
+  - tags:
+    - corporate meeting discussing plans
+    trigger: vision
+- text: Picture a fleet running solely on electric power.
+  emotion: informative
+  clips:
+  - tags:
+    - electric car fleet
+    trigger: fleet
+- text: Their vehicles promise zero emissions, challenging the status quo.
+  emotion: dramatic
+  clips:
+  - tags:
+    - environmental impact analysis
+    trigger: zero emissions
+- text: With self-driving tech on the horizon, the road ahead looks thrilling.
+  emotion: impactful
+  clips:
+  - tags:
+    - autonomous vehicle technology
+    trigger: self-driving
+- text: Tesla aims to redefine how we drive, one mile at a time.
+  emotion: informative
+  clips:
+  - tags:
+    - innovative automotive design
+    trigger: redefine
+- text: Tesla's journey has seen its stock rise from $6 in 2010 to over $800 today.
+  emotion: dramatic
+  on_screen_text: "$6 \x12 $800 (2010-Today)"
+  chart_video: out/tesla_ev_investments/charts/chart_4698.mp4
+- text: That's an incredible growth of over 13,000%! A true driving force in the market.
+  emotion: impactful
+  on_screen_text: 'Growth: 13,000%'
+  chart_video: out/tesla_ev_investments/charts/chart_16501.mp4
+- text: As Tesla accelerates forward, it becomes more than just a car company.
+  emotion: informative
+  clips:
+  - tags:
+    - corporate innovation hub
+    trigger: accelerates
+- text: It's a movement towards a cleaner, smarter future.
+  emotion: impactful
+  clips:
+  - tags:
+    - renewable energy solutions
+    trigger: cleaner future
+- text: Could this be the dawn of a new era in transportation?
+  emotion: curious
+  clips:
+  - tags:
+    - innovative transportation concept
+    trigger: new era
+- text: Stay tuned, because the journey is just beginning.
+  emotion: curious
+  clips:
+  - tags:
+    - exciting business opportunities
+    trigger: beginning

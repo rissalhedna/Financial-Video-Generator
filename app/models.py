@@ -104,3 +104,4 @@ class RenderPlan(BaseModel):
     segments: List[RenderSegment]
     output_path: str
     bgm_path: Optional[str] = None
+    srt_path: Optional[str] = None  # Optional path to SRT file to burn into the video

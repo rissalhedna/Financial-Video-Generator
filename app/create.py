@@ -23,6 +23,7 @@ def main(
     spec_file: str = typer.Argument(..., help="Path to YAML specification file"),
     output: str = typer.Option(None, "--output", "-o", help="Override output directory"),
     refresh: bool = typer.Option(False, "--refresh", "-r", help="Force re-download videos"),
+    burn_subtitles: bool = typer.Option(True, "--burn-subtitles/--no-burn-subtitles", help="Whether to burn subtitles into the output video"),
 ):
     """Create a video from a YAML specification file."""
     spec_path = Path(spec_file)
@@ -38,9 +39,9 @@ def main(
             with open(spec_path) as f:
                 data = yaml.safe_load(f)
             data["output_dir"] = output
-            result = create_video(data, force_refresh=refresh)
+            result = create_video(data, force_refresh=refresh, burn_subtitles=burn_subtitles)
         else:
-            result = create_video(spec_path, force_refresh=refresh)
+            result = create_video(spec_path, force_refresh=refresh, burn_subtitles=burn_subtitles)
         
         typer.echo(f"\n✓ Video created: {result}")
         

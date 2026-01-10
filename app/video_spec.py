@@ -138,7 +138,8 @@ class VideoSpec:
 
 def create_video(
     spec: Union[str, Path, Dict[str, Any], VideoSpec],
-    force_refresh: bool = False
+    force_refresh: bool = False,
+    burn_subtitles: bool = True,
 ) -> Path:
     """
     Create a video from a specification.
@@ -238,14 +239,18 @@ def create_video(
         # 4. Render
         pbar.set_description("Rendering video")
         out_path = output_dir / "video.mp4"
+
+        # Write subtitles (so they can be burned into the video)
+        srt_file = output_dir / "subtitles.srt"
+        write_srt(script, tts, srt_file)
+
         plan = build_render_plan(script, visuals, tts, out_path)
         if bgm_path:
             plan.bgm_path = bgm_path
-        
+        if burn_subtitles and srt_file.exists():
+            plan.srt_path = str(srt_file)
+
         result_path = render(plan)
-        
-        # Write subtitles
-        write_srt(script, tts, output_dir / "subtitles.srt")
         pbar.update(1)
     
     # Write manifest

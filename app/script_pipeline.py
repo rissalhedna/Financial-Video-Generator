@@ -186,6 +186,7 @@ def generate_and_create_video(
     input_data: InputData,
     yaml_path: Optional[Path] = None,
     force_refresh: bool = False,
+    burn_subtitles: bool = True,
 ) -> Path:
     """
     Generate script and create video in one step.
@@ -210,5 +211,5 @@ def generate_and_create_video(
     )
     
     # Create the video
-    return create_video(spec, force_refresh=force_refresh)
+    return create_video(spec, force_refresh=force_refresh, burn_subtitles=burn_subtitles)
 

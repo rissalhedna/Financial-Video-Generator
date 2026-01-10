@@ -23,6 +23,7 @@ def run_pipeline(
     mood: Optional[str] = None,
     voice_id: Optional[str] = None,
     use_ai_speech_control: Optional[bool] = None,
+    burn_subtitles: bool = True,
 ) -> Path:
     settings = get_settings()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -81,7 +82,8 @@ def run_pipeline(
 
         # Subtitles (SRT)
         pbar.set_description("Writing subtitles")
-        write_srt(script, tts, output_dir / "subtitles.srt")
+        srt_file = output_dir / "subtitles.srt"
+        write_srt(script, tts, srt_file)
         pbar.update(1)
 
         # Arrange & Render
@@ -90,6 +92,9 @@ def run_pipeline(
         plan = build_render_plan(script, visuals, tts, out_path)
         if bgm_path:
             plan.bgm_path = bgm_path
+        # Attach subtitles path so renderer can burn them in (if requested)
+        if burn_subtitles and srt_file.exists():
+            plan.srt_path = str(srt_file)
             
         result_path = render(plan)
         pbar.update(1)

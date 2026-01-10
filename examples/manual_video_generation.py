@@ -16,8 +16,8 @@ def example_yaml_approach():
     """Simplest approach: Create video from YAML spec."""
     from app.video_spec import create_video
     
-    # Just point to a YAML file
-    video_path = create_video("videos/apple_story.yaml")
+    # Just point to a YAML file (subtitles will be burned-in by default)
+    video_path = create_video("videos/apple_story.yaml", burn_subtitles=True)
     print(f"Created: {video_path}")
 
 
@@ -56,7 +56,7 @@ def example_dict_approach():
         ]
     }
     
-    video_path = create_video(spec)
+    video_path = create_video(spec, burn_subtitles=True)
     print(f"Created: {video_path}")
 
 
@@ -113,14 +113,18 @@ def example_low_level_api():
     if tracks:
         bgm_path = str(download_music(tracks[0]["url"], tmp_dir / "audio" / "bgm.mp3"))
     
-    # Render
+# Write subtitles (so they can be burned into the video)
     out_path = output_dir / "video.mp4"
+    srt_file = output_dir / "subtitles.srt"
+    write_srt(script, tts, srt_file)
+
     plan = build_render_plan(script, visuals, tts, out_path)
     if bgm_path:
         plan.bgm_path = bgm_path
-    
+    if srt_file.exists():
+        plan.srt_path = str(srt_file)
+
     result = render(plan)
-    write_srt(script, tts, output_dir / "subtitles.srt")
     
     print(f"Created: {result}")
 
