@@ -1,7 +1,7 @@
 """
-Fiindo Studio UI - A stunning interface for AI video generation.
+Fiindo Studio UI
 """
-from .studio import launch_studio
+from .studio import launch, create_ui
 
-__all__ = ["launch_studio"]
+__all__ = ["launch", "create_ui"]
 

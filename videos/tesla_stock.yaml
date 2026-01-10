@@ -1,0 +1,100 @@
+title: Tesla Stock Explainer
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/tesla_stock
+segments:
+- text: What if I told you one car company has changed the world?
+  emotion: curious
+  clips:
+  - tags:
+    - corporate office building exterior
+    trigger: company
+- text: Imagine a future where electric cars fill our roads.
+  emotion: informative
+  clips:
+  - tags:
+    - electric car charging station
+    trigger: electric cars
+- text: Tesla isn't just about cars. It's a hub of innovation!
+  emotion: impactful
+  clips:
+  - tags:
+    - high-tech innovation lab
+    trigger: innovation
+- text: Interested in how Tesla's journey is shaping stock markets?
+  emotion: curious
+  clips:
+  - tags:
+    - stock market analysis screens
+    trigger: stock markets
+- text: >-
+    Tesla's story began in 2003, marking a visionary step toward sustainable transport.
+  emotion: informative
+  clips:
+  - tags:
+    - historical business timeline
+    trigger: began 2003
+- text: >-
+    Fast forward to today, and Tesla is influencing not only cars but also our view
+    of energy.
+  emotion: dramatic
+  clips:
+  - tags:
+    - modern city skyline
+    trigger: today
+  - tags:
+    - solar energy panels
+    trigger: energy
+- text: >-
+    Elon Musk's vision sparked a revolution, making Tesla a giant in tech and auto
+    industries.
+  emotion: impactful
+  clips:
+  - tags:
+    - tech industry conference
+    trigger: tech industries
+  - tags:
+    - automotive factory production line
+    trigger: auto industries
+- text: >-
+    In the past decade, Tesla's stock soared over 1,500%, going from $20 to over $300
+    per share.
+  emotion: dramatic
+  on_screen_text: "$20 \0B+"
+  clips:
+  - tags:
+    - rising stock chart
+    trigger: soared 1,500%
+- text: >-
+    With a market cap now exceeding $800 billion, Tesla stands as a giant among giants.
+  emotion: impactful
+  on_screen_text: 'Market Cap: $800B+'
+  clips:
+  - tags:
+    - corporate headquarters aerial
+    trigger: giant among giants
+- text: So, what's next for Tesla's journey?
+  emotion: curious
+  clips:
+  - tags:
+    - businessman contemplating future
+    trigger: next
+- text: As it continues to redefine industries, Tesla's impact is undeniable.
+  emotion: impactful
+  clips:
+  - tags:
+    - industry transformation concept
+    trigger: redefine industries
+- text: Could its innovative spark lead to even greater transformations?
+  emotion: curious
+  clips:
+  - tags:
+    - innovation future technology
+    trigger: innovative spark
+- text: The road is open, and we're all curious to see where it leads.
+  emotion: curious
+  clips:
+  - tags:
+    - open highway aerial view
+    trigger: road open

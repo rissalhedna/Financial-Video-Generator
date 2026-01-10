@@ -1,746 +1,575 @@
 """
-Fiindo Studio - A stunning UI for AI video generation.
-
-Launch with: python -m app.ui.studio
+Fiindo Studio — Clean 3-Column Layout with Expandable Agents
 """
 from __future__ import annotations
 
-import json
-import threading
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-import gradio as gr
+import threading
+import time
 import yaml
 
-# Import pipeline components
+import gradio as gr
+
 from ..models import InputData
-from ..script_pipeline import generate_script
-from ..video_spec import create_video, VideoSpec
+from ..script_pipeline import generate_script_only, generate_charts
+from ..video_spec import create_video
 
 
-# ============================================
-# State Management
-# ============================================
+# ═══════════════════════════════════════════════════════════════════════════
+# STATE MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════
 
 @dataclass
 class PipelineState:
-    """Tracks the current state of the generation pipeline."""
-    status: str = "idle"  # idle, running, completed, error
-    current_step: int = 0
-    total_steps: int = 7
-    step_names: List[str] = field(default_factory=lambda: [
-        "Input", "Introduction", "Development", "Charts", 
-        "Conclusion", "Revision", "Visual Mapping", "Rendering"
-    ])
-    step_status: Dict[int, str] = field(default_factory=dict)
-    error_message: Optional[str] = None
-    
-    # Generated content
+    """Global pipeline state."""
     topic: str = ""
-    facts: List[str] = field(default_factory=list)
-    news: List[str] = field(default_factory=list)
-    segments: List[Dict[str, Any]] = field(default_factory=list)
     yaml_spec: Optional[Dict[str, Any]] = None
+    chart_segments: List[Any] = field(default_factory=list)
     video_path: Optional[str] = None
     
+    # Agent tracking
+    current_agent_step: int = 0
+    agent_status: str = "idle"  # idle, running, done, error
+    
+    # UI state
+    expanded_agent: Optional[str] = None  # Which agent section is expanded
+    
+    @property
+    def segments(self) -> List[Dict]:
+        return self.yaml_spec.get("segments", []) if self.yaml_spec else []
+    
     def reset(self):
-        self.status = "idle"
-        self.current_step = 0
-        self.step_status = {}
-        self.error_message = None
-        self.segments = []
         self.yaml_spec = None
+        self.chart_segments = []
         self.video_path = None
+        self.current_agent_step = 0
+        self.agent_status = "idle"
+        self.expanded_agent = None
 
 
-# Global state
-pipeline_state = PipelineState()
+state = PipelineState()
 
 
-# ============================================
-# CSS Loading
-# ============================================
+# ═══════════════════════════════════════════════════════════════════════════
+# AGENT DEFINITIONS
+# ═══════════════════════════════════════════════════════════════════════════
 
-def load_css() -> str:
-    """Load custom CSS styles."""
-    css_path = Path(__file__).parent / "styles.css"
-    if css_path.exists():
-        return css_path.read_text()
-    return ""
+AGENT_PIPELINE = [
+    {"id": "intro", "name": "Introduction", "icon": "🎭"},
+    {"id": "dev", "name": "Development", "icon": "📝"},
+    {"id": "charts", "name": "Charts", "icon": "📊"},
+    {"id": "conclusion", "name": "Conclusion", "icon": "🎬"},
+    {"id": "revision", "name": "Revision", "icon": "✨"},
+    {"id": "visuals", "name": "Visuals", "icon": "🎨"},
+]
 
 
-# ============================================
-# Pipeline Execution
-# ============================================
+# ═══════════════════════════════════════════════════════════════════════════
+# HTML BUILDERS
+# ═══════════════════════════════════════════════════════════════════════════
 
-def run_generation_pipeline(
-    topic: str,
-    facts_text: str,
-    news_text: str,
-    duration: int,
-    mood: str,
-    voice_id: str,
-    voice_speed: str,
-    progress=gr.Progress()
-) -> Tuple[str, str, str, str]:
-    """
-    Run the full generation pipeline with progress updates.
+def agent_sidebar_html() -> str:
+    """Generate compact agent sidebar with expandable sections."""
+    html = '<div class="fi-agent-sidebar">'
     
-    Returns: (status_html, segments_html, yaml_content, video_path)
-    """
-    global pipeline_state
-    
-    try:
-        pipeline_state.reset()
-        pipeline_state.status = "running"
-        pipeline_state.topic = topic
-        pipeline_state.facts = [f.strip() for f in facts_text.split("\n") if f.strip()]
-        pipeline_state.news = [n.strip() for n in news_text.split("\n") if n.strip()]
+    for i, agent in enumerate(AGENT_PIPELINE):
+        step_num = i + 1
         
-        # Build input
-        input_data = InputData(
-            topic=topic,
-            facts=pipeline_state.facts,
-            news=pipeline_state.news,
-            target_seconds=duration,
-            mood=mood,
-            voice_id=voice_id if voice_id else None,
-            voice_speed=voice_speed,
-        )
-        
-        # Step 1: Generate script
-        progress(0.1, desc="🚀 Starting pipeline...")
-        pipeline_state.current_step = 1
-        pipeline_state.step_status[1] = "running"
-        
-        topic_slug = topic.lower().replace(" ", "_").replace(".", "")[:30]
-        yaml_path = Path(f"videos/{topic_slug}.yaml")
-        yaml_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        progress(0.3, desc="✍️ Generating script...")
-        spec = generate_script(
-            input_data,
-            output_path=yaml_path,
-            voice_id=voice_id or "en-US-Studio-O",
-            voice_speed=voice_speed,
-            music="inspirational",
-        )
-        
-        pipeline_state.yaml_spec = spec
-        pipeline_state.segments = spec.get("segments", [])
-        pipeline_state.step_status[1] = "completed"
-        
-        # Step 2: Create video
-        progress(0.5, desc="🎬 Creating video...")
-        pipeline_state.current_step = 2
-        pipeline_state.step_status[2] = "running"
-        
-        video_path = create_video(spec, force_refresh=False)
-        
-        pipeline_state.video_path = str(video_path)
-        pipeline_state.step_status[2] = "completed"
-        pipeline_state.status = "completed"
-        
-        progress(1.0, desc="✅ Complete!")
-        
-        # Generate outputs
-        status_html = generate_status_html()
-        segments_html = generate_segments_html()
-        yaml_content = yaml.dump(spec, default_flow_style=False, allow_unicode=True)
-        
-        return status_html, segments_html, yaml_content, str(video_path)
-        
-    except Exception as e:
-        pipeline_state.status = "error"
-        pipeline_state.error_message = str(e)
-        import traceback
-        traceback.print_exc()
-        
-        return (
-            f'<div class="status-badge error">❌ Error: {str(e)}</div>',
-            "",
-            "",
-            None
-        )
-
-
-def generate_script_only(
-    topic: str,
-    facts_text: str,
-    news_text: str,
-    duration: int,
-    mood: str,
-    voice_id: str,
-    voice_speed: str,
-    progress=gr.Progress()
-) -> Tuple[str, str, str]:
-    """Generate just the script without creating video.
-    
-    Note: This still generates chart animations via Manim if the script
-    includes data visualizations. The full pipeline includes:
-    - 6 AI agents (intro, development, charts, conclusion, revision, visual mapping)
-    - Chart video generation with Manim (if data is present)
-    - YAML spec output
-    """
-    global pipeline_state
-    
-    try:
-        pipeline_state.reset()
-        pipeline_state.status = "running"
-        pipeline_state.topic = topic
-        
-        input_data = InputData(
-            topic=topic,
-            facts=[f.strip() for f in facts_text.split("\n") if f.strip()],
-            news=[n.strip() for n in news_text.split("\n") if n.strip()],
-            target_seconds=duration,
-            mood=mood,
-            voice_id=voice_id if voice_id else None,
-            voice_speed=voice_speed,
-        )
-        
-        # Phase 1: AI Script Generation
-        progress(0.1, desc="🤖 Phase 1/2: Running AI agents...")
-        pipeline_state.current_step = 1
-        
-        topic_slug = topic.lower().replace(" ", "_").replace(".", "")[:30]
-        yaml_path = Path(f"videos/{topic_slug}.yaml")
-        yaml_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # This runs all 6 agents + generates chart videos
-        progress(0.3, desc="✍️ Introduction agent...")
-        progress(0.4, desc="📖 Development agent...")
-        progress(0.5, desc="📊 Charts agent + Manim animations...")
-        progress(0.6, desc="🎯 Conclusion agent...")
-        progress(0.7, desc="✨ Revision agent...")
-        progress(0.8, desc="🎨 Visual mapping agent...")
-        
-        spec = generate_script(
-            input_data,
-            output_path=yaml_path,
-            voice_id=voice_id or "en-US-Studio-O",
-            voice_speed=voice_speed,
-        )
-        
-        pipeline_state.yaml_spec = spec
-        pipeline_state.segments = spec.get("segments", [])
-        pipeline_state.current_step = 2
-        pipeline_state.status = "completed"
-        
-        progress(1.0, desc="✅ Script + charts ready!")
-        
-        segments_html = generate_segments_html()
-        yaml_content = yaml.dump(spec, default_flow_style=False, allow_unicode=True)
-        
-        # Count what was generated
-        num_segments = len(pipeline_state.segments)
-        chart_count = sum(1 for s in pipeline_state.segments if s.get("chart_video"))
-        
-        status_msg = f'✅ Generated {num_segments} segments'
-        if chart_count:
-            status_msg += f' + {chart_count} chart animation{"s" if chart_count > 1 else ""}'
-        
-        return (
-            f'<div class="status-badge completed">{status_msg}</div>',
-            segments_html,
-            yaml_content
-        )
-        
-    except Exception as e:
-        pipeline_state.status = "error"
-        import traceback
-        traceback.print_exc()
-        return (
-            f'<div class="status-badge error">❌ {str(e)}</div>',
-            "",
-            ""
-        )
-
-
-def render_from_yaml(yaml_content: str, progress=gr.Progress()) -> Tuple[str, str]:
-    """Create video from edited YAML."""
-    try:
-        progress(0.2, desc="📝 Parsing YAML...")
-        spec = yaml.safe_load(yaml_content)
-        
-        progress(0.4, desc="🎬 Creating video...")
-        video_path = create_video(spec, force_refresh=False)
-        
-        progress(1.0, desc="✅ Done!")
-        
-        return (
-            '<div class="status-badge completed">✅ Video created!</div>',
-            str(video_path)
-        )
-    except Exception as e:
-        return (
-            f'<div class="status-badge error">❌ {str(e)}</div>',
-            None
-        )
-
-
-# ============================================
-# HTML Generators
-# ============================================
-
-def generate_status_html() -> str:
-    """Generate pipeline status visualization showing all phases."""
-    
-    # Two main phases with sub-steps
-    phases = [
-        {
-            "name": "Script Generation",
-            "icon": "🤖",
-            "steps": [
-                ("🎣", "Hook"),
-                ("📖", "Story"),
-                ("📊", "Charts"),
-                ("🎯", "Finale"),
-                ("✨", "Polish"),
-                ("🎨", "Visuals"),
-            ]
-        },
-        {
-            "name": "Video Creation",
-            "icon": "🎬",
-            "steps": [
-                ("🔍", "Footage"),
-                ("🔊", "Audio"),
-                ("🎵", "Music"),
-                ("🎞️", "Render"),
-            ]
-        }
-    ]
-    
-    html = '<div style="padding: 20px; background: #1f2937; border-radius: 12px; border: 2px solid #4b5563;">'
-    
-    for phase_idx, phase in enumerate(phases):
-        phase_completed = (phase_idx == 0 and pipeline_state.current_step >= 1) or \
-                         (phase_idx == 1 and pipeline_state.status == "completed")
-        phase_active = (phase_idx == 0 and pipeline_state.status == "running" and pipeline_state.current_step == 1) or \
-                      (phase_idx == 1 and pipeline_state.status == "running" and pipeline_state.current_step == 2)
-        
-        # Phase colors - high contrast
-        if phase_completed:
-            phase_color = "#4ade80"  # Bright green
-            status_text = "✓ Complete"
-        elif phase_active:
-            phase_color = "#c084fc"  # Bright purple
-            status_text = "● Running"
+        # Determine state
+        if state.agent_status == "error":
+            status = "error" if step_num <= state.current_agent_step else "pending"
+        elif step_num < state.current_agent_step:
+            status = "completed"
+        elif step_num == state.current_agent_step:
+            status = "running" if state.agent_status == "running" else "completed"
         else:
-            phase_color = "#9ca3af"  # Gray
-            status_text = ""
+            status = "pending"
         
+        is_expanded = state.expanded_agent == agent["id"]
+        
+        # Agent card (clickable)
         html += f'''
-        <div style="margin-bottom: 24px;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
-                <span style="font-size: 1.75rem;">{phase["icon"]}</span>
-                <span style="font-size: 1.2rem; font-weight: 700; color: {phase_color};">{phase["name"]}</span>
-                <span style="color: {phase_color}; font-size: 0.95rem; font-weight: 600;">{status_text}</span>
+        <div class="fi-agent-item {status} {'expanded' if is_expanded else ''}" 
+             onclick="document.getElementById('agent-toggle-{agent["id"]}').click()">
+            <div class="fi-agent-compact">
+                <span class="fi-agent-icon-sm">{agent['icon']}</span>
+                <span class="fi-agent-name-sm">{agent['name']}</span>
+                <span class="fi-agent-status-dot"></span>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px; padding-left: 44px;">
         '''
         
-        for step_icon, step_name in phase["steps"]:
-            if phase_completed:
-                step_bg = "rgba(74, 222, 128, 0.2)"
-                step_border = "#4ade80"
-                step_text = "#4ade80"
-            elif phase_active:
-                step_bg = "rgba(192, 132, 252, 0.2)"
-                step_border = "#c084fc"
-                step_text = "#e9d5ff"
-            else:
-                step_bg = "#374151"
-                step_border = "#4b5563"
-                step_text = "#9ca3af"
-            
+        # Expandable YAML content
+        if is_expanded and state.yaml_spec:
+            yaml_content = get_agent_yaml_section(agent["id"])
             html += f'''
-            <div style="
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 8px 14px;
-                border-radius: 8px;
-                background: {step_bg};
-                border: 2px solid {step_border};
-                font-size: 0.9rem;
-                font-weight: 600;
-                color: {step_text};
-            ">
-                <span style="font-size: 1.1rem;">{step_icon}</span>
-                <span>{step_name}</span>
+            <div class="fi-agent-yaml">
+                <pre>{yaml_content}</pre>
             </div>
             '''
         
-        html += '</div></div>'
+        html += '</div>'
+        
+        # Hidden toggle button for Gradio
+        html += f'<button id="agent-toggle-{agent["id"]}" style="display:none;"></button>'
     
     html += '</div>'
-    
     return html
 
 
-def generate_segments_html() -> str:
-    """Generate the segments editor HTML."""
-    if not pipeline_state.segments:
-        return '<div style="text-align: center; color: #9ca3af; padding: 50px; font-size: 1rem;">No segments yet. Generate a script first!</div>'
+def get_agent_yaml_section(agent_id: str) -> str:
+    """Extract relevant YAML section for an agent."""
+    if not state.yaml_spec or not state.segments:
+        return "# No content yet"
     
-    # High contrast emotion colors
-    emotions_colors = {
-        "curious": "#c084fc",     # Purple
-        "dramatic": "#f87171",    # Red
-        "informative": "#22d3ee", # Cyan
-        "impactful": "#fbbf24",   # Yellow
-        "excited": "#4ade80",     # Green
-        "serious": "#818cf8",     # Indigo
-        "neutral": "#9ca3af",     # Gray
+    # Map agent IDs to segment types
+    section_map = {
+        "intro": ["intro", "introduction", "hook"],
+        "dev": ["development", "context", "background"],
+        "charts": ["chart", "data", "statistics"],
+        "conclusion": ["conclusion", "outro", "ending"],
+        "revision": ["revised"],
+        "visuals": state.segments,  # All segments have visuals
     }
     
-    html = '<div style="display: flex; flex-direction: column; gap: 14px;">'
+    if agent_id == "visuals":
+        # Show visual mappings
+        visuals = []
+        for seg in state.segments[:3]:  # First 3 segments
+            vis = seg.get("visuals", [])
+            if vis:
+                visuals.append(f"- {', '.join(vis[:3])}")
+        return "\n".join(visuals) if visuals else "# No visual tags yet"
     
-    for i, seg in enumerate(pipeline_state.segments, 1):
-        emotion = seg.get("emotion", "neutral")
-        color = emotions_colors.get(emotion, "#9ca3af")
-        text = seg.get("text", "")
-        
-        # Get visual tags
-        clips = seg.get("clips", [])
-        tags = []
-        for clip in clips:
-            if isinstance(clip, dict):
-                tags.extend(clip.get("tags", []))
-        
-        tags_html = " ".join([
-            f'<span style="background: rgba(34, 211, 238, 0.2); color: #22d3ee; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; border: 1px solid rgba(34, 211, 238, 0.3);">{tag}</span>'
-            for tag in tags[:3]
-        ])
-        
-        html += f'''
-        <div style="
-            background: #1f2937;
-            border: 2px solid #4b5563;
-            border-left: 4px solid {color};
-            border-radius: 12px;
-            padding: 18px;
-            transition: all 0.2s;
-        " onmouseover="this.style.borderColor='#6b7280'; this.style.transform='translateX(4px)';"
-           onmouseout="this.style.borderColor='#4b5563'; this.style.transform='translateX(0)';">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="
-                        background: linear-gradient(135deg, #a855f7, #3b82f6);
-                        color: #ffffff;
-                        width: 32px;
-                        height: 32px;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        font-size: 0.9rem;
-                        font-weight: 700;
-                    ">{i}</span>
-                    <span style="
-                        background: {color}25;
-                        color: {color};
-                        padding: 6px 14px;
-                        border-radius: 20px;
-                        font-size: 0.85rem;
-                        font-weight: 600;
-                        text-transform: capitalize;
-                        border: 1px solid {color}40;
-                    ">🎭 {emotion}</span>
-                </div>
-                <span style="color: #d1d5db; font-size: 0.85rem; font-weight: 500;">
-                    ~{seg.get('duration_estimate_seconds', 5)}s
-                </span>
-            </div>
-            <p style="color: #f9fafb; font-size: 1rem; line-height: 1.7; margin: 0 0 14px 0; font-weight: 400;">
-                "{text}"
-            </p>
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <span style="color: #9ca3af; font-size: 0.85rem; font-weight: 500;">🎬</span>
-                {tags_html if tags_html else '<span style="color: #9ca3af; font-size: 0.85rem;">No visual tags</span>'}
-            </div>
+    # Find segments for this agent
+    keywords = section_map.get(agent_id, [])
+    matching_segments = []
+    for seg in state.segments:
+        text = seg.get("text", "").lower()
+        if any(kw in text[:50] for kw in keywords):
+            matching_segments.append(seg)
+            if len(matching_segments) >= 2:
+                break
+    
+    if not matching_segments:
+        return "# No content for this section yet"
+    
+    # Format as YAML
+    content = []
+    for seg in matching_segments:
+        content.append(f"text: {seg.get('text', '')[:100]}...")
+        content.append(f"emotion: {seg.get('emotion', 'neutral')}")
+    
+    return "\n".join(content)
+
+
+def preview_area_html() -> str:
+    """Generate preview area HTML."""
+    if state.video_path:
+        return f'''
+        <div class="fi-preview-content">
+            <div class="fi-preview-label">📹 Video Output</div>
+            <div class="fi-preview-text">Video rendered successfully! Playing below.</div>
         </div>
         '''
+    elif state.yaml_spec and state.yaml_spec.get("segments"):
+        # Check if any segments have chart_video paths
+        chart_videos = []
+        for seg in state.segments:
+            if seg.get("chart_video"):
+                chart_videos.append(seg["chart_video"])
+        
+        if chart_videos:
+            # Chart preview message (actual video plays in video_output component)
+            return f'''
+            <div class="fi-preview-content">
+                <div class="fi-preview-label">📊 Charts Rendered</div>
+                <div class="fi-preview-text">{len(chart_videos)} chart(s) generated • Playing first chart below</div>
+            </div>
+            '''
+        elif state.chart_segments:
+            return f'''
+            <div class="fi-preview-content">
+                <div class="fi-preview-label">📊 Charts Ready</div>
+                <div class="fi-preview-text">{len(state.chart_segments)} chart(s) pending render</div>
+            </div>
+            '''
+        else:
+            n_segments = len(state.segments)
+            return f'''
+            <div class="fi-preview-content">
+                <div class="fi-preview-label">✓ Script Generated</div>
+                <div class="fi-preview-text">{n_segments} segments created</div>
+            </div>
+            '''
+    else:
+        return '''
+        <div class="fi-preview-empty">
+            <div class="fi-preview-icon">🎬</div>
+            <div class="fi-preview-text">Previews will appear here</div>
+        </div>
+        '''
+
+
+def get_first_chart_video() -> Optional[str]:
+    """Get the first chart video path from the spec."""
+    if not state.yaml_spec or not state.segments:
+        return None
     
-    html += '</div>'
-    return html
+    for seg in state.segments:
+        chart_path = seg.get("chart_video")
+        if chart_path:
+            # Ensure absolute path
+            chart_path_obj = Path(chart_path)
+            if not chart_path_obj.is_absolute():
+                chart_path_obj = Path.cwd() / chart_path
+            # Verify file exists
+            if chart_path_obj.exists():
+                return str(chart_path_obj)
+    return None
 
 
-# ============================================
-# Main UI Builder
-# ============================================
+def status_msg_html(msg: str, type: str = "info") -> str:
+    """Generate status message."""
+    icons = {"success": "✓", "error": "✕", "info": "ℹ", "warning": "⚠"}
+    return f'<div class="fi-status-{type}"><span>{icons.get(type, "ℹ")}</span> {msg}</div>'
 
-def create_studio_ui() -> gr.Blocks:
-    """Create the main Gradio interface."""
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PIPELINE FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+
+def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood: str, voice: str, speed: str):
+    """Generate script with real-time updates."""
+    global state
     
-    custom_css = load_css()
+    if not topic.strip():
+        yield agent_sidebar_html(), status_msg_html("Enter a topic", "warning"), preview_area_html(), None, ""
+        return
+    
+    try:
+        if topic != state.topic:
+            state.reset()
+        state.topic = topic
+        state.agent_status = "running"
+        
+        yield agent_sidebar_html(), status_msg_html("Starting AI agents...", "info"), preview_area_html(), None, ""
+        
+        # Prepare input
+        input_data = InputData(
+            topic=topic,
+            facts=[f.strip() for f in facts.split("\n") if f.strip()],
+            news=[n.strip() for n in news.split("\n") if n.strip()],
+            target_seconds=duration,
+            mood=mood,
+            voice_id=voice or "en-US-Studio-O",
+            voice_speed=speed,
+        )
+        
+        slug = topic.lower().replace(" ", "_").replace(".", "")[:30]
+        yaml_path = Path(f"videos/{slug}.yaml")
+        yaml_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Progress callback
+        def on_agent_progress(step: int, name: str, status: str):
+            state.current_agent_step = step
+        
+        # Run pipeline in thread
+        result = {"spec": None, "charts": None, "error": None}
+        
+        def run_pipeline():
+            try:
+                spec, charts = generate_script_only(
+                    input_data, output_path=yaml_path,
+                    voice_id=voice or "en-US-Studio-O",
+                    voice_speed=speed, on_progress=on_agent_progress,
+                )
+                result["spec"] = spec
+                result["charts"] = charts
+            except Exception as e:
+                result["error"] = e
+        
+        thread = threading.Thread(target=run_pipeline)
+        thread.start()
+        
+        # Poll for updates
+        last_step = 0
+        while thread.is_alive():
+            if state.current_agent_step != last_step:
+                agent_name = AGENT_PIPELINE[state.current_agent_step - 1]["name"] if state.current_agent_step > 0 else "Starting"
+                yield (
+                    agent_sidebar_html(),
+                    status_msg_html(f"Running: {agent_name}...", "info"),
+                    preview_area_html(), None, ""
+                )
+                last_step = state.current_agent_step
+            time.sleep(0.3)
+        
+        thread.join()
+        
+        if result["error"]:
+            state.agent_status = "error"
+            raise result["error"]
+        
+        # Success
+        state.yaml_spec = result["spec"]
+        state.chart_segments = result["charts"]
+        state.agent_status = "done"
+        
+        n = len(state.segments)
+        msg = f"✓ Generated {n} segments · {len(result['charts'])} charts ready"
+        
+        yield (
+            agent_sidebar_html(),
+            status_msg_html(msg, "success"),
+            preview_area_html(),
+            None,
+            yaml.dump(result["spec"], default_flow_style=False, allow_unicode=True)
+        )
+        
+    except Exception as e:
+        state.agent_status = "error"
+        import traceback; traceback.print_exc()
+        yield (
+            agent_sidebar_html(),
+            status_msg_html(f"Error: {str(e)}", "error"),
+            preview_area_html(), None, ""
+        )
+
+
+def toggle_agent_section(agent_id: str):
+    """Toggle expansion of an agent section."""
+    if state.expanded_agent == agent_id:
+        state.expanded_agent = None
+    else:
+        state.expanded_agent = agent_id
+    return agent_sidebar_html()
+
+
+def render_charts_flow():
+    """Render charts."""
+    if not state.yaml_spec:
+        yield status_msg_html("Generate script first", "warning"), preview_area_html(), None, ""
+        return
+    
+    if not state.chart_segments:
+        yield (
+            status_msg_html("No charts to render", "info"),
+            preview_area_html(),
+            None,
+            yaml.dump(state.yaml_spec, default_flow_style=False, allow_unicode=True)
+        )
+        return
+    
+    try:
+        yield status_msg_html("Rendering charts...", "info"), preview_area_html(), None, ""
+        
+        # Render charts
+        state.yaml_spec = generate_charts(state.yaml_spec, state.chart_segments)
+        
+        # Debug: Print segment structure
+        print(f"📊 Total segments: {len(state.segments)}")
+        for i, seg in enumerate(state.segments):
+            print(f"📊 Segment {i}: chart_video = {seg.get('chart_video')}, is_chart_placeholder = {seg.get('is_chart_placeholder')}")
+        
+        # Get first chart video to display
+        first_chart = get_first_chart_video()
+        
+        print(f"📊 Chart video path from function: {first_chart}")
+        if first_chart:
+            print(f"📊 Chart file exists: {Path(first_chart).exists()}")
+            print(f"📊 Chart file size: {Path(first_chart).stat().st_size if Path(first_chart).exists() else 'N/A'}")
+        else:
+            # Try to find chart files manually
+            print("📊 No chart path found in segments, searching for chart files...")
+            output_dir = state.yaml_spec.get("output_dir", "out/generated")
+            chart_dir = Path(output_dir) / "charts"
+            if chart_dir.exists():
+                chart_files = list(chart_dir.glob("*.mp4"))
+                print(f"📊 Found {len(chart_files)} chart files in {chart_dir}")
+                if chart_files:
+                    first_chart = str(chart_files[0].absolute())
+                    print(f"📊 Using first chart file: {first_chart}")
+        
+        yield (
+            status_msg_html(f"✓ Rendered {len(state.chart_segments)} charts", "success"),
+            preview_area_html(),
+            first_chart,  # Display first chart in video player
+            yaml.dump(state.yaml_spec, default_flow_style=False, allow_unicode=True)
+        )
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        yield status_msg_html(f"Error: {str(e)}", "error"), preview_area_html(), None, ""
+
+
+def create_video_flow(yaml_content: str):
+    """Create video."""
+    try:
+        yield status_msg_html("Creating video...", "info"), preview_area_html(), None
+        spec = yaml.safe_load(yaml_content)
+        state.yaml_spec = spec
+        
+        video = create_video(spec, force_refresh=False)
+        video_path = Path(video)
+        if not video_path.is_absolute():
+            video_path = Path.cwd() / video_path
+        
+        state.video_path = str(video_path)
+        
+        print(f"🎬 Video path: {state.video_path}")
+        print(f"🎬 Video exists: {video_path.exists()}")
+        if video_path.exists():
+            print(f"🎬 Video size: {video_path.stat().st_size} bytes")
+            print(f"🎬 Video extension: {video_path.suffix}")
+        
+        # Return the path as string for Gradio
+        yield status_msg_html("✓ Video created!", "success"), preview_area_html(), str(video_path)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        yield status_msg_html(f"Error: {str(e)}", "error"), preview_area_html(), None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# UI LAYOUT
+# ═══════════════════════════════════════════════════════════════════════════
+
+def load_css() -> str:
+    """Load custom CSS."""
+    p = Path(__file__).parent / "styles.css"
+    return p.read_text() if p.exists() else ""
+
+
+def create_ui() -> gr.Blocks:
+    """Create the 3-column Fiindo Studio UI."""
     
     with gr.Blocks(
         title="Fiindo Studio",
-        theme=gr.themes.Base(
-            primary_hue="violet",
-            secondary_hue="cyan",
-            neutral_hue="slate",
-            font=gr.themes.GoogleFont("Inter"),
-        ),
-        css=custom_css,
-    ) as demo:
+        theme=gr.themes.Base(primary_hue="violet", neutral_hue="zinc", font=gr.themes.GoogleFont("Inter")),
+        css=load_css(),
+    ) as app:
         
-        # Header
+        gr.HTML('<div class="fi-header"><div class="fi-logo">🎬 Fiindo Studio</div></div>')
+        
+        # Add JavaScript to ensure video playback works
         gr.HTML('''
-        <div class="studio-header">
-            <h1 class="studio-title">🎬 Fiindo Studio</h1>
-            <p class="studio-subtitle">Transform any topic into stunning financial videos with AI</p>
-        </div>
-        ''')
-        
-        # Main Layout
-        with gr.Row():
-            # Left Column - Input & Script
-            with gr.Column(scale=1):
-                
-                # Topic Input Card
-                with gr.Group(elem_classes="glass-card"):
-                    gr.Markdown("### 💡 Topic & Content")
+        <script>
+        // Ensure video controls work properly
+        document.addEventListener('DOMContentLoaded', function() {
+            function fixVideos() {
+                const videos = document.querySelectorAll('video');
+                videos.forEach(function(video) {
+                    video.setAttribute('controls', 'controls');
+                    video.setAttribute('preload', 'auto');
+                    video.removeAttribute('controlsList');
                     
-                    topic_input = gr.Textbox(
-                        label="Topic",
-                        placeholder="e.g., Apple Inc stock, Tesla earnings, Bitcoin trends...",
-                        lines=1,
-                    )
+                    // Add error handler
+                    video.onerror = function() {
+                        console.error('Video error:', video.error);
+                    };
                     
-                    with gr.Row():
-                        facts_input = gr.Textbox(
-                            label="Facts (one per line)",
-                            placeholder="Stock rose 600% since 2014\nMost valuable company\nFounded in 1976",
-                            lines=4,
-                        )
-                        news_input = gr.Textbox(
-                            label="News (one per line)",
-                            placeholder="Recent earnings beat expectations\nNew product launch announced",
-                            lines=4,
-                        )
-                    
-                    with gr.Row():
-                        duration_slider = gr.Slider(
-                            minimum=30,
-                            maximum=120,
-                            value=60,
-                            step=5,
-                            label="Duration (seconds)",
-                        )
-                        mood_dropdown = gr.Dropdown(
-                            choices=["informative", "excited", "dramatic", "serious", "curious"],
-                            value="informative",
-                            label="Mood",
-                        )
-                    
-                    with gr.Accordion("🎙️ Voice Settings", open=False):
-                        voice_dropdown = gr.Dropdown(
-                            choices=[
-                                ("Studio O (Natural)", "en-US-Studio-O"),
-                                ("Neural2 J (Energetic)", "en-US-Neural2-J"),
-                                ("Journey D (Storytelling)", "en-US-Journey-D"),
-                            ],
-                            value="en-US-Studio-O",
-                            label="Voice",
-                        )
-                        speed_dropdown = gr.Dropdown(
-                            choices=["slow", "medium", "fast"],
-                            value="fast",
-                            label="Speed",
-                        )
-                
-                # Info about pipeline
-                gr.HTML('''
-                <div style="
-                    background: #1f2937;
-                    border: 2px solid #4b5563;
-                    border-radius: 12px;
-                    padding: 16px 18px;
-                    margin: 14px 0;
-                ">
-                    <div style="display: flex; align-items: flex-start; gap: 14px;">
-                        <span style="font-size: 1.5rem;">💡</span>
-                        <div style="font-size: 0.95rem; color: #e5e7eb; line-height: 1.6;">
-                            <strong style="color: #ffffff;">Script Generation</strong> runs 6 AI agents and creates chart animations (Manim).<br>
-                            <strong style="color: #ffffff;">Video Creation</strong> then fetches footage, generates audio, and renders the final MP4.
-                        </div>
-                    </div>
-                </div>
-                ''')
-                
-                # Action Buttons
-                with gr.Row():
-                    generate_script_btn = gr.Button(
-                        "✍️ Generate Script + Charts",
-                        variant="secondary",
-                        size="lg",
-                    )
-                    generate_video_btn = gr.Button(
-                        "🎬 Generate Full Video",
-                        variant="primary",
-                        size="lg",
-                    )
-                
-                # Status Display
-                status_html = gr.HTML(
-                    value='<div style="text-align: center; color: #64748b; padding: 20px;">Ready to generate</div>',
-                    label="Status",
-                )
-                
-                # Segments Editor
-                with gr.Group(elem_classes="glass-card"):
-                    gr.Markdown("### 📝 Script Segments")
-                    segments_html = gr.HTML(
-                        value='<div style="text-align: center; color: #64748b; padding: 40px;">Generate a script to see segments here</div>',
-                    )
+                    // Force reload if needed
+                    if (video.src && video.readyState === 0) {
+                        video.load();
+                    }
+                });
+            }
             
-            # Right Column - Preview & YAML
-            with gr.Column(scale=1):
-                
-                # Video Preview
-                with gr.Group(elem_classes="glass-card"):
-                    gr.Markdown("### 📺 Preview")
-                    video_output = gr.Video(
-                        label=None,
-                        height=400,
-                        autoplay=True,
-                    )
-                    
-                    # Timeline placeholder
-                    gr.HTML('''
-                    <div style="background: #1f2937; border: 2px solid #4b5563; border-radius: 12px; padding: 14px; margin-top: 14px;">
-                        <div style="height: 36px; background: #111827; border-radius: 8px; position: relative; overflow: hidden; border: 1px solid #374151;">
-                            <div style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: linear-gradient(90deg, #a855f7, #3b82f6); border-radius: 8px; transition: width 0.3s;"></div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.85rem; color: #9ca3af; font-weight: 500;">
-                            <span>0:00</span>
-                            <span>0:30</span>
-                            <span>1:00</span>
-                        </div>
-                    </div>
-                    ''')
-                
-                # YAML Editor
-                with gr.Group(elem_classes="glass-card"):
-                    gr.Markdown("### 📄 YAML Specification")
-                    yaml_editor = gr.Code(
-                        language="yaml",
-                        label=None,
-                        lines=15,
-                        interactive=True,
-                    )
-                    
-                    with gr.Row():
-                        render_btn = gr.Button(
-                            "🔄 Render from YAML",
-                            variant="secondary",
-                        )
-                        download_btn = gr.DownloadButton(
-                            "📥 Download YAML",
-                            variant="secondary",
-                        )
-                
-                # Assets Overview
-                with gr.Accordion("🎨 Assets", open=False):
-                    gr.HTML('''
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 14px;">
-                        <div style="background: #374151; border: 2px solid #a855f7; border-radius: 12px; padding: 20px; text-align: center;">
-                            <div style="font-size: 2.5rem;">📹</div>
-                            <div style="color: #ffffff; font-weight: 700; margin-top: 10px; font-size: 1rem;">Videos</div>
-                            <div style="color: #d1d5db; font-size: 0.9rem; margin-top: 4px;">Stock footage</div>
-                        </div>
-                        <div style="background: #374151; border: 2px solid #06b6d4; border-radius: 12px; padding: 20px; text-align: center;">
-                            <div style="font-size: 2.5rem;">🔊</div>
-                            <div style="color: #ffffff; font-weight: 700; margin-top: 10px; font-size: 1rem;">Audio</div>
-                            <div style="color: #d1d5db; font-size: 0.9rem; margin-top: 4px;">TTS segments</div>
-                        </div>
-                        <div style="background: #374151; border: 2px solid #22c55e; border-radius: 12px; padding: 20px; text-align: center;">
-                            <div style="font-size: 2.5rem;">📊</div>
-                            <div style="color: #ffffff; font-weight: 700; margin-top: 10px; font-size: 1rem;">Charts</div>
-                            <div style="color: #d1d5db; font-size: 0.9rem; margin-top: 4px;">Animated data</div>
-                        </div>
-                    </div>
-                    ''')
-        
-        # Footer
-        gr.HTML('''
-        <div style="text-align: center; padding: 28px; margin-top: 28px; border-top: 2px solid #4b5563;">
-            <p style="color: #9ca3af; font-size: 0.95rem; margin: 0; font-weight: 500;">
-                🎬 Fiindo Studio • AI-Powered Financial Video Generation
-            </p>
-        </div>
+            // Run initially and periodically
+            fixVideos();
+            setInterval(fixVideos, 2000);
+        });
+        </script>
         ''')
         
-        # Event Handlers
-        generate_script_btn.click(
-            fn=generate_script_only,
-            inputs=[
-                topic_input, facts_input, news_input,
-                duration_slider, mood_dropdown,
-                voice_dropdown, speed_dropdown,
-            ],
-            outputs=[status_html, segments_html, yaml_editor],
-            show_progress="full",
+        # 3-COLUMN LAYOUT
+        with gr.Row(elem_classes="fi-main-row"):
+            
+            # LEFT: Agent Pipeline
+            with gr.Column(scale=1, min_width=280, elem_classes="fi-col-left"):
+                gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0;">🤖 PIPELINE</h3>')
+                agent_sidebar = gr.HTML(agent_sidebar_html())
+            
+            # MIDDLE: Input Form (Compact)
+            with gr.Column(scale=1, min_width=320, elem_classes="fi-col-middle"):
+                gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0;">📝 CONFIGURATION</h3>')
+                
+                topic = gr.Textbox(label="Topic", placeholder="e.g., Tesla Stock Analysis", lines=1, elem_classes="fi-input-compact")
+                
+                with gr.Row():
+                    facts = gr.Textbox(label="Facts", placeholder="One per line", lines=2, elem_classes="fi-input-compact")
+                    news = gr.Textbox(label="News", placeholder="One per line", lines=2, elem_classes="fi-input-compact")
+                
+                with gr.Row():
+                    duration = gr.Slider(30, 180, 60, step=10, label="Duration (s)", elem_classes="fi-compact")
+                    mood = gr.Dropdown(["informative", "excited", "dramatic"], value="informative", label="Mood", elem_classes="fi-compact")
+                
+                with gr.Accordion("⚙️ Advanced", open=False):
+                    voice = gr.Dropdown([("Studio O", "en-US-Studio-O"), ("Neural2 J", "en-US-Neural2-J")], value="en-US-Studio-O", label="Voice")
+                    speed = gr.Dropdown(["slow", "medium", "fast"], value="fast", label="Speed")
+                
+                gr.Markdown("---")
+                
+                generate_btn = gr.Button("🚀 Generate Script", variant="primary", size="lg", elem_classes="fi-btn-primary")
+                
+                with gr.Row():
+                    charts_btn = gr.Button("📊 Render Charts", size="sm")
+                    video_btn = gr.Button("🎥 Create Video", size="sm")
+                
+                status_display = gr.HTML(status_msg_html("Ready", "info"))
+            
+            # RIGHT: Preview Area
+            with gr.Column(scale=1, min_width=320, elem_classes="fi-col-right"):
+                gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0;">🎬 PREVIEW</h3>')
+                preview_display = gr.HTML(preview_area_html())
+                
+                with gr.Group():
+                    video_output = gr.Video(
+                        label=None, 
+                        height=300, 
+                        visible=True,
+                        autoplay=False,
+                        show_label=False,
+                        elem_classes="fi-video-player"
+                    )
+        
+        # Bottom: YAML Editor
+        gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 20px 12px 20px;">📄 YAML EDITOR</h3>')
+        yaml_editor = gr.Code(language="yaml", label=None, lines=12, elem_classes="fi-yaml-editor")
+        
+        # EVENT HANDLERS
+        generate_btn.click(
+            generate_script_flow,
+            inputs=[topic, facts, news, duration, mood, voice, speed],
+            outputs=[agent_sidebar, status_display, preview_display, video_output, yaml_editor],
         )
         
-        generate_video_btn.click(
-            fn=run_generation_pipeline,
-            inputs=[
-                topic_input, facts_input, news_input,
-                duration_slider, mood_dropdown,
-                voice_dropdown, speed_dropdown,
-            ],
-            outputs=[status_html, segments_html, yaml_editor, video_output],
-            show_progress="full",
+        charts_btn.click(
+            render_charts_flow,
+            inputs=[],
+            outputs=[status_display, preview_display, video_output, yaml_editor],
         )
         
-        render_btn.click(
-            fn=render_from_yaml,
+        video_btn.click(
+            create_video_flow,
             inputs=[yaml_editor],
-            outputs=[status_html, video_output],
-            show_progress="full",
+            outputs=[status_display, preview_display, video_output],
         )
+        
+        # Agent toggle handlers
+        for agent in AGENT_PIPELINE:
+            agent_id = agent["id"]
+            # This would need JavaScript or a different approach for true interactivity
+            # For now, clicking updates the view but doesn't persist without a full render
     
-    return demo
+    return app
 
 
-def launch_studio(
-    share: bool = False,
-    server_name: str = "127.0.0.1",
-    server_port: int = 7860,
-):
+def launch(share=False, host="127.0.0.1", port=7860):
     """Launch the Fiindo Studio UI."""
-    demo = create_studio_ui()
-    demo.launch(
-        share=share,
-        server_name=server_name,
-        server_port=server_port,
-        show_error=True,
-    )
+    app = create_ui()
+    app.launch(share=share, server_name=host, server_port=port, show_error=True, inbrowser=True)
 
 
-# CLI Entry Point
 if __name__ == "__main__":
-    import typer
-    
-    app = typer.Typer(help="Fiindo Studio - AI Video Generation UI")
-    
-    @app.command()
-    def main(
-        share: bool = typer.Option(False, "--share", help="Create a public link"),
-        host: str = typer.Option("127.0.0.1", "--host", help="Server host"),
-        port: int = typer.Option(7860, "--port", help="Server port"),
-    ):
-        """Launch Fiindo Studio."""
-        print("🎬 Starting Fiindo Studio...")
-        launch_studio(share=share, server_name=host, server_port=port)
-    
-    app()
-
+    launch()

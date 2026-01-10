@@ -1,0 +1,80 @@
+title: Tesla Stock Analysis Explainer
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/tesla_stock_analysis
+segments:
+- text: Imagine a car that's more than just a vehicle.
+  emotion: curious
+  clips:
+  - tags:
+    - innovative car design tech
+    trigger: car
+- text: It's a symbol of innovation, transforming both tech and finance.
+  emotion: dramatic
+  clips:
+  - tags:
+    - technology innovation office
+    trigger: innovation
+- text: Tesla's stock has sparked curiosity and debate worldwide.
+  emotion: curious
+  clips:
+  - tags:
+    - stock market discussion
+    trigger: curiosity
+- text: Ready to explore what makes Tesla so electrifying?
+  emotion: curious
+  clips:
+  - tags:
+    - research analysis screens
+    trigger: explore
+- text: Tesla isn't just about sleek cars; it's about a vision for the future.
+  emotion: informative
+  clips:
+  - tags:
+    - future vision innovation
+    trigger: future
+- text: Focusing on sustainable energy, Tesla stands apart from traditional automakers.
+  emotion: informative
+  clips:
+  - tags:
+    - sustainable energy technology
+    trigger: sustainable
+- text: Its growth spans beyond automotive to power storage and solar innovation.
+  emotion: informative
+  clips:
+  - tags:
+    - solar panels power storage
+    trigger: growth
+- text: From 2010, Tesla's stock soared from approximately $3.84 to over $260 in 2023.
+  emotion: dramatic
+  on_screen_text: "$3.84 \0 $260 (2010-2023)"
+  clips:
+  - tags:
+    - stock chart rise
+    trigger: soared
+- text: With a staggering market cap growth, Tesla's valuation surpassed $900 billion.
+  emotion: dramatic
+  on_screen_text: Market Cap > $900B
+  clips:
+  - tags:
+    - financial growth success
+    trigger: staggering
+- text: What lies ahead for Tesla on this electrifying journey?
+  emotion: curious
+  clips:
+  - tags:
+    - businessman thinking future
+    trigger: ahead
+- text: Could its innovations redefine not only transportation but energy as a whole?
+  emotion: informative
+  clips:
+  - tags:
+    - energy innovation technology
+    trigger: innovations
+- text: As Tesla continues to push boundaries, the road ahead promises excitement.
+  emotion: impactful
+  clips:
+  - tags:
+    - city panorama success
+    trigger: boundaries
