@@ -1,0 +1,80 @@
+title: Apple incorporation Explainer
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/apple_incorporation
+segments:
+- text: What if I told you one of the world's biggest companies started in a garage?
+  emotion: curious
+  clips:
+  - tags:
+    - startup team meeting office
+    trigger: garage
+- text: 'Picture this: A young Steve Jobs, tinkering away and dreaming big.'
+  emotion: informative
+  clips:
+  - tags:
+    - young entrepreneur working
+    trigger: Steve Jobs
+- text: Ever wonder how that dream evolved into the Apple empire we see today?
+  emotion: dramatic
+  clips:
+  - tags:
+    - apple headquarters exterior
+    trigger: Apple empire
+- text: It all began in 1976, with Jobs, Wozniak, and a vision.
+  emotion: informative
+  clips:
+  - tags:
+    - historical tech meeting
+    trigger: '1976'
+- text: They crafted their first computer, the Apple I, by hand.
+  emotion: informative
+  clips:
+  - tags:
+    - vintage computer assembly
+    trigger: Apple I
+- text: Fast forward to today, and Apple isn’t just about computers.
+  emotion: dramatic
+  clips:
+  - tags:
+    - modern tech office building
+    trigger: today
+- text: It's an innovation powerhouse, shaping the digital world.
+  emotion: impactful
+  clips:
+  - tags:
+    - innovation technology hub
+    trigger: innovation
+- text: >-
+    Since the iPhone launch in 2007, Apple has sold over 2 billion units, transforming
+    mobile technology.
+  emotion: informative
+  on_screen_text: 2 Billion iPhones Sold (2007-Today)
+  chart_video: out/apple_incorporation/charts/chart_7542.mp4
+- text: >-
+    Meanwhile, Apple's revenue soared from $8 billion in 2004 to a staggering $394
+    billion in 2022.
+  emotion: dramatic
+  on_screen_text: $8B → $394B Revenue (2004-2022)
+  chart_video: out/apple_incorporation/charts/chart_87240.mp4
+- text: So, what's next for Apple in this ever-evolving tech landscape?
+  emotion: curious
+  clips:
+  - tags:
+    - tech future brainstorming
+    trigger: next
+- text: >-
+    As they continue to break boundaries, could the next innovation be something we
+    haven't even imagined?
+  emotion: curious
+  clips:
+  - tags:
+    - futuristic technology concept
+    trigger: innovation
+- text: 'One thing''s for sure: Apple''s journey from a garage is far from over.'
+  emotion: impactful
+  clips:
+  - tags:
+    - corporate growth journey
+    trigger: journey

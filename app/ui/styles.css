@@ -1,0 +1,470 @@
+/* ============================================
+   FIINDO STUDIO - Clean High Contrast Theme
+   ============================================ */
+
+/* === CSS Variables === */
+:root {
+    /* Clean dark backgrounds with good separation */
+    --bg-base: #111827;
+    --bg-surface: #1f2937;
+    --bg-elevated: #374151;
+    --bg-input: #1f2937;
+    
+    /* Strong, visible borders */
+    --border-default: #4b5563;
+    --border-strong: #6b7280;
+    --border-accent: #818cf8;
+    
+    /* Bright, saturated accent colors */
+    --accent-purple: #a855f7;
+    --accent-blue: #3b82f6;
+    --accent-cyan: #06b6d4;
+    --accent-green: #22c55e;
+    --accent-yellow: #eab308;
+    --accent-red: #ef4444;
+    --accent-pink: #ec4899;
+    
+    /* HIGH CONTRAST text - this is key */
+    --text-white: #ffffff;
+    --text-primary: #f9fafb;
+    --text-secondary: #e5e7eb;
+    --text-tertiary: #d1d5db;
+    --text-muted: #9ca3af;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.6);
+    
+    /* Radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+}
+
+/* === Global === */
+.gradio-container {
+    background: var(--bg-base) !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.dark {
+    --background-fill-primary: var(--bg-base) !important;
+    --background-fill-secondary: var(--bg-surface) !important;
+    --block-background-fill: var(--bg-surface) !important;
+}
+
+/* === Header === */
+.studio-header {
+    background: linear-gradient(135deg, var(--bg-surface) 0%, #252f3f 100%);
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+}
+
+.studio-title {
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    color: var(--text-white) !important;
+    margin: 0 !important;
+    letter-spacing: -0.02em;
+    /* Gradient text */
+    background: linear-gradient(135deg, #c084fc 0%, #60a5fa 50%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.studio-subtitle {
+    color: var(--text-secondary) !important;
+    font-size: 1.1rem !important;
+    margin-top: 8px !important;
+    font-weight: 400 !important;
+}
+
+/* === Cards / Groups === */
+.glass-card,
+.gradio-group,
+.gradio-block {
+    background: var(--bg-surface) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 20px !important;
+}
+
+.gradio-group:hover,
+.glass-card:hover {
+    border-color: var(--border-strong) !important;
+}
+
+/* === TEXT - Maximum readability === */
+.gradio-markdown h1,
+.gradio-markdown h2,
+.gradio-markdown h3 {
+    color: var(--text-white) !important;
+    font-weight: 700 !important;
+}
+
+.gradio-markdown p,
+.gradio-markdown li {
+    color: var(--text-secondary) !important;
+    line-height: 1.7 !important;
+}
+
+span, p, div {
+    color: var(--text-primary);
+}
+
+/* === Labels - Very visible === */
+label,
+.gradio-textbox label,
+.gradio-dropdown label,
+.gradio-slider label,
+.label-wrap span,
+.gradio-accordion .label-wrap span {
+    color: var(--text-white) !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.01em !important;
+}
+
+/* === Input Fields - Clear contrast === */
+.gradio-textbox textarea,
+.gradio-textbox input,
+input[type="text"],
+input[type="number"],
+textarea {
+    background: var(--bg-base) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-white) !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
+    padding: 12px 14px !important;
+}
+
+.gradio-textbox textarea::placeholder,
+.gradio-textbox input::placeholder,
+textarea::placeholder,
+input::placeholder {
+    color: var(--text-muted) !important;
+    opacity: 1 !important;
+}
+
+.gradio-textbox textarea:focus,
+.gradio-textbox input:focus,
+textarea:focus,
+input:focus {
+    border-color: var(--accent-purple) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25) !important;
+}
+
+/* === Dropdowns === */
+.gradio-dropdown,
+.gradio-dropdown > div,
+select {
+    background: var(--bg-base) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-white) !important;
+}
+
+.gradio-dropdown input {
+    color: var(--text-white) !important;
+}
+
+.gradio-dropdown ul {
+    background: var(--bg-elevated) !important;
+    border: 2px solid var(--border-strong) !important;
+}
+
+.gradio-dropdown li {
+    color: var(--text-primary) !important;
+    padding: 10px 14px !important;
+}
+
+.gradio-dropdown li:hover,
+.gradio-dropdown li.selected {
+    background: var(--accent-purple) !important;
+    color: var(--text-white) !important;
+}
+
+/* === Buttons - Bold and clear === */
+button.primary,
+button[class*="primary"] {
+    background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%) !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-white) !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    padding: 14px 28px !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+button.primary:hover,
+button[class*="primary"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 25px rgba(168, 85, 247, 0.5) !important;
+}
+
+button.secondary,
+button[class*="secondary"] {
+    background: var(--bg-elevated) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-white) !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+}
+
+button.secondary:hover,
+button[class*="secondary"]:hover {
+    background: var(--bg-surface) !important;
+    border-color: var(--accent-purple) !important;
+}
+
+/* === Slider === */
+.gradio-slider input[type="range"] {
+    background: var(--bg-elevated) !important;
+    border-radius: 8px !important;
+    height: 8px !important;
+}
+
+.gradio-slider input[type="range"]::-webkit-slider-thumb {
+    background: var(--accent-purple) !important;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid var(--text-white);
+    cursor: pointer;
+}
+
+.gradio-slider .wrap,
+.gradio-slider span,
+.gradio-slider output {
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+}
+
+/* === Accordion === */
+.gradio-accordion {
+    background: var(--bg-surface) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-lg) !important;
+    overflow: hidden !important;
+}
+
+.gradio-accordion > .label-wrap {
+    padding: 14px 18px !important;
+    background: transparent !important;
+}
+
+.gradio-accordion > .label-wrap:hover {
+    background: rgba(168, 85, 247, 0.1) !important;
+}
+
+/* === Code Editor / YAML === */
+.gradio-code,
+.cm-editor,
+pre,
+code {
+    background: var(--bg-base) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-md) !important;
+    font-family: 'SF Mono', 'Fira Code', 'Monaco', monospace !important;
+}
+
+.cm-content,
+.cm-line {
+    color: var(--text-primary) !important;
+}
+
+.cm-gutters {
+    background: var(--bg-surface) !important;
+    border-right: 1px solid var(--border-default) !important;
+    color: var(--text-muted) !important;
+}
+
+/* Syntax highlighting - bright colors */
+.cm-string { color: #4ade80 !important; }
+.cm-keyword { color: #f472b6 !important; }
+.cm-property { color: #60a5fa !important; }
+.cm-number { color: #fb923c !important; }
+.cm-atom { color: #facc15 !important; }
+.cm-comment { color: #6b7280 !important; }
+
+/* === Video === */
+video {
+    border-radius: var(--radius-md) !important;
+    border: 2px solid var(--border-default) !important;
+}
+
+.gradio-video {
+    background: var(--bg-base) !important;
+}
+
+/* === Status Badges === */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.status-badge.pending {
+    background: var(--bg-elevated);
+    color: var(--text-tertiary);
+    border: 1px solid var(--border-default);
+}
+
+.status-badge.running {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid var(--accent-purple);
+}
+
+.status-badge.completed {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border: 1px solid var(--accent-green);
+}
+
+.status-badge.error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid var(--accent-red);
+}
+
+/* === Tabs === */
+.gradio-tabs > .tab-nav {
+    background: var(--bg-surface) !important;
+    border: 2px solid var(--border-default) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 6px !important;
+}
+
+.gradio-tabs > .tab-nav > button {
+    background: transparent !important;
+    border: none !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+}
+
+.gradio-tabs > .tab-nav > button.selected {
+    background: var(--accent-purple) !important;
+    color: var(--text-white) !important;
+}
+
+.gradio-tabs > .tab-nav > button:hover:not(.selected) {
+    background: var(--bg-elevated) !important;
+    color: var(--text-white) !important;
+}
+
+/* === Progress === */
+.progress-bar,
+.gradio-progress {
+    background: var(--bg-elevated) !important;
+    border-radius: 8px !important;
+}
+
+.progress-bar > div,
+.gradio-progress > div {
+    background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue)) !important;
+}
+
+/* === Scrollbar === */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+}
+
+/* === Row spacing === */
+.gradio-row {
+    gap: 16px !important;
+}
+
+/* === File/Upload === */
+.gradio-file,
+.gradio-upload {
+    background: var(--bg-base) !important;
+    border: 2px dashed var(--border-default) !important;
+    border-radius: var(--radius-lg) !important;
+    color: var(--text-secondary) !important;
+}
+
+.gradio-file:hover,
+.gradio-upload:hover {
+    border-color: var(--accent-purple) !important;
+}
+
+/* === Download Button === */
+.download-link,
+a.download {
+    color: var(--accent-cyan) !important;
+    font-weight: 600 !important;
+}
+
+/* === Loading === */
+.generating,
+.loading {
+    background: rgba(17, 24, 39, 0.9) !important;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    .studio-title {
+        font-size: 1.8rem !important;
+    }
+    
+    button.primary,
+    button.secondary {
+        padding: 12px 20px !important;
+        font-size: 0.9rem !important;
+    }
+}
+
+/* === Force white text on specific elements === */
+.gradio-container h1,
+.gradio-container h2,
+.gradio-container h3,
+.gradio-container h4 {
+    color: var(--text-white) !important;
+}
+
+.gradio-container .prose * {
+    color: var(--text-secondary) !important;
+}
+
+/* === HTML content inside components === */
+.gradio-html {
+    color: var(--text-primary) !important;
+}
+
+.gradio-html strong,
+.gradio-html b {
+    color: var(--text-white) !important;
+}
