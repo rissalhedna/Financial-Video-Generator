@@ -57,38 +57,95 @@ def _bucket_last_value(
     return out_labels, out_values
 
 
-def thin_series_for_range(
-    labels: List[str],
-    values: List[float],
-    range_: ChartRange,
-) -> Tuple[List[str], List[float]]:
+# def thin_series_for_range(
+#     labels: List[str],
+#     values: List[float],
+#     range_: ChartRange,
+# ) -> Tuple[List[str], List[float]]:
+#
+#     if range_ in {ChartRange.Y3, ChartRange.Y5, ChartRange.Y10}:
+#         # jährliche Punkte: letzter Handelstag pro Jahr
+#         return _bucket_last_value(
+#             labels, values,
+#             bucket_fn=lambda dt: dt.year,
+#             label_fn=lambda dt: f"{dt.year}",
+#         )
+#
+#     if range_ in {ChartRange.M6, ChartRange.YTD, ChartRange.Y1}:
+#         # monatliche Punkte: letzter Handelstag pro Monat
+#         return _bucket_last_value(
+#             labels, values,
+#             bucket_fn=lambda dt: (dt.year, dt.month),
+#             label_fn=lambda dt: dt.strftime("%b"),  # "Jan", "Feb", ...
+#         )
+#
+#     if range_ == ChartRange.M1:
+#         # wöchentlich: letzter Handelstag pro Kalenderwoche
+#         return _bucket_last_value(
+#             labels, values,
+#             bucket_fn=lambda dt: (dt.isocalendar().year, dt.isocalendar().week),
+#             label_fn=lambda dt: f"KW{dt.isocalendar().week:02d}",
+#         )
+#
+#     # fallback: keine Verdichtung
+#     return labels, values
 
-    if range_ in {ChartRange.Y3, ChartRange.Y5, ChartRange.Y10}:
-        # jährliche Punkte: letzter Handelstag pro Jahr
-        return _bucket_last_value(
-            labels, values,
+
+
+def make_sparse_x_labels_for_range(date_labels: List[str], range_: ChartRange) -> List[str]:
+    """
+    Returns a labels-list with SAME length as date_labels, but most entries are "".
+    Non-empty entries mark the desired X-axis tick labels depending on the range.
+    """
+    dts = [_parse_date(d) for d in date_labels]
+    out = [""] * len(dts)
+
+    def mark_on_bucket_change(bucket_fn, label_fn):
+        last_bucket = None
+        for i, dt in enumerate(dts):
+            b = bucket_fn(dt)
+            if b != last_bucket:
+                out[i] = label_fn(dt)
+                last_bucket = b
+
+    if range_ == ChartRange.M1:
+        STEP_DAYS = 5 # weekly labels
+
+        for i, dt in enumerate(dts):
+            if i % STEP_DAYS == 0:
+                out[i] = dt.strftime("%d.%m.%y")  # e.g.. "05.10"
+
+
+    elif range_ in {ChartRange.M6, ChartRange.YTD, ChartRange.Y1}:
+        # monthly ticks
+        def month_label(dt: datetime) -> str:
+            # include year on January (or first tick) to avoid ambiguity across years
+            if dt.month == 1:
+                return dt.strftime("%b\n%Y")  # e.g. "Jan\n2025"
+            return dt.strftime("%b")         # "Feb", "Mar", ...
+        mark_on_bucket_change(
+            bucket_fn=lambda dt: (dt.year, dt.month),
+            label_fn=month_label,
+        )
+
+    elif range_ == ChartRange.Y3:
+        # quarterly ticks
+        def quarter(dt: datetime) -> int:
+            return (dt.month - 1) // 3 + 1
+        mark_on_bucket_change(
+            bucket_fn=lambda dt: (dt.year, quarter(dt)),
+            label_fn=lambda dt: f"Q{quarter(dt)}\n{dt.year}",
+        )
+
+    else:
+        # Y5 / Y10: yearly ticks
+        mark_on_bucket_change(
             bucket_fn=lambda dt: dt.year,
             label_fn=lambda dt: f"{dt.year}",
         )
 
-    if range_ in {ChartRange.M6, ChartRange.YTD, ChartRange.Y1}:
-        # monatliche Punkte: letzter Handelstag pro Monat
-        return _bucket_last_value(
-            labels, values,
-            bucket_fn=lambda dt: (dt.year, dt.month),
-            label_fn=lambda dt: dt.strftime("%b"),  # "Jan", "Feb", ...
-        )
+    return out
 
-    if range_ == ChartRange.M1:
-        # wöchentlich: letzter Handelstag pro Kalenderwoche
-        return _bucket_last_value(
-            labels, values,
-            bucket_fn=lambda dt: (dt.isocalendar().year, dt.isocalendar().week),
-            label_fn=lambda dt: f"KW{dt.isocalendar().week:02d}",
-        )
-
-    # fallback: keine Verdichtung
-    return labels, values
 
 
 def build_stock_price_chart_json(
@@ -100,7 +157,7 @@ def build_stock_price_chart_json(
     chart_id: Optional[str] = None,
 ):
     if title is None:
-        title = f"{symbol} (Last {range_.name} Years)"
+        title = f"{symbol} Stock (Last {range_.name} Years)"
 
     if chart_id is None:
         chart_id = f"{symbol.lower().replace('.', '_')}_{range_.value}"

@@ -70,8 +70,10 @@ class LineChartScene(MovingCameraScene):
             y_max += step
 
         # ---------------- Axes ----------------
+        # TICK_STEP = 5  # every week
+
         ax = Axes(
-            x_range=[0, n - 1, 1],
+            x_range=[0, n - 1],
             y_range=[y_min, y_max, step],
             x_length=10,
             y_length=4.8,
@@ -80,7 +82,33 @@ class LineChartScene(MovingCameraScene):
                 "stroke_width": 2,
                 "color": CUSTOM_GREY_1,
             },
+            x_axis_config={
+                "include_ticks": True,
+                "include_numbers": False,
+                "tick_size": 0.10,
+            },
+            y_axis_config={
+                "include_ticks": True,
+            },
         ).to_edge(DOWN).shift(UP * 0.6)
+
+
+
+        # ---------------- Horizontal helper lines ----------------
+        grid_lines = VGroup(
+            *[
+                Line(
+                    ax.c2p(0, y),
+                    ax.c2p(n - 1, y),
+                    stroke_width=3,
+                    color=CUSTOM_GREY_2,
+                )
+                for y in [y_min + k * step for k in range(int(round((y_max - y_min) / step)) + 1)]
+            ]
+        )
+
+        grid_lines.set_z_index(1)
+        ax.set_z_index(2)
 
         # ---------------- Y-axis numbers matching the ticks ----------------
         y_number_labels = VGroup(
@@ -101,6 +129,7 @@ class LineChartScene(MovingCameraScene):
                 .set_color(CUSTOM_GREY_1)
                 .next_to(ax.c2p(i, y_min), DOWN, buff=0.25)
                 for i, m in enumerate(labels)
+                if m  # only draw non-empty sparse labels
             ]
         )
 
@@ -132,15 +161,28 @@ class LineChartScene(MovingCameraScene):
         line = VMobject().set_stroke(CUSTOM_BLUE_1, width=4)
         line.set_points_smoothly(pts)
 
-        dots = VGroup(*[Dot(p, color=CUSTOM_BLUE_1) for p in pts])
+        # Indices where we want to show markers/values:
+        annotate_idx = [i for i, m in enumerate(labels) if m]  # tick positions
+        annotate_idx.append(n - 1)  # always show last point
+        annotate_idx = sorted(set(annotate_idx))
+
+        # hard cap to keep the chart clean (portrait video)
+        MAX_ANNOTATIONS = 12
+        if len(annotate_idx) > MAX_ANNOTATIONS:
+            step = math.ceil(len(annotate_idx) / MAX_ANNOTATIONS)
+            annotate_idx = annotate_idx[::step]
+            if annotate_idx[-1] != n - 1:
+                annotate_idx.append(n - 1)
+
+        dots = VGroup(*[Dot(pts[i], color=CUSTOM_BLUE_1) for i in annotate_idx])
         vals = VGroup(
             *[
-                Text(f"{v:.0f}", weight=BOLD)
+                Text(f"{values[i]:.0f}", weight=BOLD)
                 .scale(0.33)
                 .set_color(CUSTOM_GREY_1)
-                .next_to(p, UP + 0.1 * RIGHT, buff=0.2)
+                .next_to(pts[i], UP + 0.1 * RIGHT, buff=0.2)
                 .shift(UP * 0.1)
-                for p, v in zip(pts, values)
+                for i in annotate_idx
             ]
         )
 
@@ -154,7 +196,7 @@ class LineChartScene(MovingCameraScene):
         ).to_edge(UP)
 
         # ---------------- Scale scene ----------------
-        chart_group = VGroup(ax, xlabels, y_number_labels, extra_labels, line, dots, vals)
+        chart_group = VGroup(ax, grid_lines, xlabels, y_number_labels, extra_labels, line, dots, vals)
         chart_group.scale(1.1)
         chart_group.shift(UP * 0.2)
 
@@ -166,10 +208,17 @@ class LineChartScene(MovingCameraScene):
         self.play(Write(title), run_time=0.7)
         self.play(
             Create(ax),
+            #Create(grid_lines),
+            #Create(xticks),
             FadeIn(xlabels),
             FadeIn(y_number_labels),
             FadeIn(extra_labels),
             run_time=1.0,
+        )
+
+        self.play(
+            FadeIn(grid_lines),
+            run_time=0.5,
         )
 
         # PHASE 2: draw line graph
