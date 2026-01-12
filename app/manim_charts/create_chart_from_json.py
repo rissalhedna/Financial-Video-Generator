@@ -66,7 +66,16 @@ if __name__ == "__main__":
     #json_path = "apple_stock_2014_2025.json" #line
     #json_path = "apple_services_revenue_2018_2024.json" #bar
     #json_path = "apple_revenue_by_product.json" #pie
-    json_path = "../CDN/aapl_us_Y1_20260108_204225.json"
+    #json_path = "../CDN/aapl_us_Y1_20260108_204225.json"
+
+    #json_path = "../CDN/aapl_us_M1_20260111_202215.json"
+    #json_path = "../CDN/aapl_us_M6_20260111_202859.json"
+    json_path = "../CDN/aapl_us_Y1_20260111_205131.json"
+    #json_path = "../CDN/aapl_us_Y3_20260110_190552.json"
+    #json_path = "../CDN/aapl_us_Y5_20260110_190556.json"
+    #json_path = "../CDN/aapl_us_Y10_20260110_190602.json"
+    #json_path = "../CDN/aapl_us_YTD_20260110_190534.json"
+
     videopath = render_chart_from_json_file(json_path)
     print("Video path:")
     print(videopath)
