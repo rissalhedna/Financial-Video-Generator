@@ -57,42 +57,7 @@ def _bucket_last_value(
     return out_labels, out_values
 
 
-# def thin_series_for_range(
-#     labels: List[str],
-#     values: List[float],
-#     range_: ChartRange,
-# ) -> Tuple[List[str], List[float]]:
-#
-#     if range_ in {ChartRange.Y3, ChartRange.Y5, ChartRange.Y10}:
-#         # jährliche Punkte: letzter Handelstag pro Jahr
-#         return _bucket_last_value(
-#             labels, values,
-#             bucket_fn=lambda dt: dt.year,
-#             label_fn=lambda dt: f"{dt.year}",
-#         )
-#
-#     if range_ in {ChartRange.M6, ChartRange.YTD, ChartRange.Y1}:
-#         # monatliche Punkte: letzter Handelstag pro Monat
-#         return _bucket_last_value(
-#             labels, values,
-#             bucket_fn=lambda dt: (dt.year, dt.month),
-#             label_fn=lambda dt: dt.strftime("%b"),  # "Jan", "Feb", ...
-#         )
-#
-#     if range_ == ChartRange.M1:
-#         # wöchentlich: letzter Handelstag pro Kalenderwoche
-#         return _bucket_last_value(
-#             labels, values,
-#             bucket_fn=lambda dt: (dt.isocalendar().year, dt.isocalendar().week),
-#             label_fn=lambda dt: f"KW{dt.isocalendar().week:02d}",
-#         )
-#
-#     # fallback: keine Verdichtung
-#     return labels, values
-
-
-
-def make_sparse_x_labels_for_range(date_labels: List[str], range_: ChartRange) -> List[str]:
+def format_x_axis_labels(date_labels: List[str], range_: ChartRange) -> List[str]:
     """
     Returns a labels-list with SAME length as date_labels, but most entries are "".
     Non-empty entries mark the desired X-axis tick labels depending on the range.
@@ -116,17 +81,29 @@ def make_sparse_x_labels_for_range(date_labels: List[str], range_: ChartRange) -
                 out[i] = dt.strftime("%d.%m.%y")  # e.g.. "05.10"
 
 
+
     elif range_ in {ChartRange.M6, ChartRange.YTD, ChartRange.Y1}:
-        # monthly ticks
-        def month_label(dt: datetime) -> str:
-            # include year on January (or first tick) to avoid ambiguity across years
-            if dt.month == 1:
-                return dt.strftime("%b\n%Y")  # e.g. "Jan\n2025"
-            return dt.strftime("%b")         # "Feb", "Mar", ...
-        mark_on_bucket_change(
-            bucket_fn=lambda dt: (dt.year, dt.month),
-            label_fn=month_label,
-        )
+        # monthly ticks (fallback to weekly date labels if only a single month is present)
+
+        unique_months = {(dt.year, dt.month) for dt in dts}
+
+        if len(unique_months) <= 1:
+            # Fallback: behave like M1 (weekly-ish date labels)
+            STEP_DAYS = 5
+            for i, dt in enumerate(dts):
+                if i % STEP_DAYS == 0:
+                    out[i] = dt.strftime("%d.%m.%y")  # e.g. "05.01.26"
+        else:
+            def month_label(dt: datetime) -> str:
+                # include year on January (or first tick) to avoid ambiguity across years
+                if dt.month == 1:
+                    return dt.strftime("%b\n%Y")  # e.g. "Jan\n2026"
+                return dt.strftime("%b")  # "Feb", "Mar", ...
+
+            mark_on_bucket_change(
+                bucket_fn=lambda dt: (dt.year, dt.month),
+                label_fn=month_label,
+            )
 
     elif range_ == ChartRange.Y3:
         # quarterly ticks
@@ -149,18 +126,11 @@ def make_sparse_x_labels_for_range(date_labels: List[str], range_: ChartRange) -
 
 
 def build_stock_price_chart_json(
-    symbol: str,
+    chart_id: str,
+    title: str,
     labels: List[str],
     values: List[float],
-    range_: ChartRange,
-    title: Optional[str] = None,
-    chart_id: Optional[str] = None,
 ):
-    if title is None:
-        title = f"{symbol} Stock (Last {range_.name} Years)"
-
-    if chart_id is None:
-        chart_id = f"{symbol.lower().replace('.', '_')}_{range_.value}"
 
     return {
         "chart_id": chart_id,

@@ -70,7 +70,6 @@ class LineChartScene(MovingCameraScene):
             y_max += step
 
         # ---------------- Axes ----------------
-        # TICK_STEP = 5  # every week
 
         ax = Axes(
             x_range=[0, n - 1],
@@ -83,7 +82,7 @@ class LineChartScene(MovingCameraScene):
                 "color": CUSTOM_GREY_1,
             },
             x_axis_config={
-                "include_ticks": True,
+                "include_ticks": False,
                 "include_numbers": False,
                 "tick_size": 0.10,
             },
@@ -91,6 +90,14 @@ class LineChartScene(MovingCameraScene):
                 "include_ticks": True,
             },
         ).to_edge(DOWN).shift(UP * 0.6)
+
+        # Create ticks on x-axis for every label
+        xticks = VGroup()
+
+        for i, (label, value) in enumerate(zip(labels, values)):
+            if label != "":
+                tick = ax.x_axis.get_tick(i)
+                xticks.add(tick)
 
 
 
@@ -162,19 +169,9 @@ class LineChartScene(MovingCameraScene):
         line.set_points_smoothly(pts)
 
         # Indices where we want to show markers/values:
-        annotate_idx = [i for i, m in enumerate(labels) if m]  # tick positions
-        annotate_idx.append(n - 1)  # always show last point
-        annotate_idx = sorted(set(annotate_idx))
+        label_idx = [i for i, m in enumerate(labels) if m]
 
-        # hard cap to keep the chart clean (portrait video)
-        MAX_ANNOTATIONS = 12
-        if len(annotate_idx) > MAX_ANNOTATIONS:
-            step = math.ceil(len(annotate_idx) / MAX_ANNOTATIONS)
-            annotate_idx = annotate_idx[::step]
-            if annotate_idx[-1] != n - 1:
-                annotate_idx.append(n - 1)
-
-        dots = VGroup(*[Dot(pts[i], color=CUSTOM_BLUE_1) for i in annotate_idx])
+        dots = VGroup(*[Dot(pts[i], color=CUSTOM_BLUE_1) for i in label_idx])
         vals = VGroup(
             *[
                 Text(f"{values[i]:.0f}", weight=BOLD)
@@ -182,9 +179,13 @@ class LineChartScene(MovingCameraScene):
                 .set_color(CUSTOM_GREY_1)
                 .next_to(pts[i], UP + 0.1 * RIGHT, buff=0.2)
                 .shift(UP * 0.1)
-                for i in annotate_idx
+                for i in label_idx
             ]
         )
+
+        line.set_z_index(3)
+        dots.set_z_index(4)
+        vals.set_z_index(5)
 
         # ---------------- Title ----------------
         title = Text(
@@ -193,10 +194,10 @@ class LineChartScene(MovingCameraScene):
             weight=BOLD,
             font_size=48,
             color=CUSTOM_BLUE_1,
-        ).to_edge(UP)
+        ).to_edge(UP).shift(UP * 0.5)
 
         # ---------------- Scale scene ----------------
-        chart_group = VGroup(ax, grid_lines, xlabels, y_number_labels, extra_labels, line, dots, vals)
+        chart_group = VGroup(ax, grid_lines, xticks, xlabels, y_number_labels, extra_labels, line, dots, vals)
         chart_group.scale(1.1)
         chart_group.shift(UP * 0.2)
 
@@ -208,8 +209,7 @@ class LineChartScene(MovingCameraScene):
         self.play(Write(title), run_time=0.7)
         self.play(
             Create(ax),
-            #Create(grid_lines),
-            #Create(xticks),
+            Create(xticks),
             FadeIn(xlabels),
             FadeIn(y_number_labels),
             FadeIn(extra_labels),
