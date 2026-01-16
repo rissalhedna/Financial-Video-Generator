@@ -47,3 +47,28 @@ class CdnSource:
 
             resp.raise_for_status()
             return resp.json()
+
+
+    def fetch_company_metadata(self, symbol: str) -> Optional[Dict[str, Any]]:
+        """
+        GET {CDN_API_URL}/symbols/{SYMBOL}/meta.json
+        Example symbol: "AAPL.US"
+        """
+        if not self.is_available():
+            raise RuntimeError("CDN API not configured (missing CDN_API_URL or CDN_API_KEY)")
+
+        base_url = self.settings.cdn_api_url.rstrip("/")  # prevents // in the URL
+        url = f"{base_url}/symbols/{symbol}/short_overview.json"
+
+        with httpx.Client(timeout=self.settings.timeout_seconds) as client:
+            resp = client.get(url, headers=self._headers())
+
+            if resp.status_code == 429:
+                self._rate_limited = True
+                raise RuntimeError("CDN API rate-limited (429)")
+
+            if resp.status_code == 404:
+                return None  # metadata not found
+
+            resp.raise_for_status()
+            return resp.json()
