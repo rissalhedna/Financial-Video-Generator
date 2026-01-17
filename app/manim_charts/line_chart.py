@@ -24,7 +24,7 @@ Text.set_default(font="Montserrat")
 config.pixel_width = 1080
 config.pixel_height = 1920
 #config.background_color = "#cccccc"
-#config.transparent = True
+config.transparent = True
 
 # ============================================================
 # Manim scene for line chart
@@ -78,8 +78,8 @@ class LineChartScene(MovingCameraScene):
             y_length=4.8,
             axis_config={
                 "include_tip": False,
-                "stroke_width": 2,
-                "color": CUSTOM_GREY_1,
+                "stroke_width": 6,
+                "color": WHITE,
             },
             x_axis_config={
                 "include_ticks": False,
@@ -107,7 +107,7 @@ class LineChartScene(MovingCameraScene):
                 Line(
                     ax.c2p(0, y),
                     ax.c2p(n - 1, y),
-                    stroke_width=3,
+                    stroke_width=2,
                     color=CUSTOM_GREY_2,
                 )
                 for y in [y_min + k * step for k in range(int(round((y_max - y_min) / step)) + 1)]
@@ -120,9 +120,11 @@ class LineChartScene(MovingCameraScene):
         # ---------------- Y-axis numbers matching the ticks ----------------
         y_number_labels = VGroup(
             *[
-                Text(f"{int(y)}")
+                Text(f"{int(y)}",
+                     weight=BOLD
+                )
                 .scale(0.33)
-                .set_color(CUSTOM_GREY_1)
+                .set_color(WHITE)
                 .next_to(ax.c2p(0, y), LEFT, buff=0.2)
                 for y in range(int(y_min), int(y_max) + 1, step)
             ]
@@ -131,9 +133,9 @@ class LineChartScene(MovingCameraScene):
         # ---------------- X-labels ----------------
         xlabels = VGroup(
             *[
-                Text(m)
+                Text(m, weight=BOLD)
                 .scale(0.35)
-                .set_color(CUSTOM_GREY_1)
+                .set_color(WHITE)
                 .next_to(ax.c2p(i, y_min), DOWN, buff=0.25)
                 for i, m in enumerate(labels)
                 if m  # only draw non-empty sparse labels
@@ -144,18 +146,18 @@ class LineChartScene(MovingCameraScene):
         extra_labels = VGroup()
         if self.x_axis_label_text:
             x_title = (
-                Text(self.x_axis_label_text)
+                Text(self.x_axis_label_text, weight=BOLD)
                 .scale(0.4)
-                .set_color(CUSTOM_GREY_1)
+                .set_color(WHITE)
             )
             x_title.next_to(ax, DOWN, buff=0.8)
             extra_labels.add(x_title)
 
         if self.y_axis_label_text:
             y_title = (
-                Text(self.y_axis_label_text)
+                Text(self.y_axis_label_text, weight=BOLD)
                 .scale(0.4)
-                .set_color(CUSTOM_GREY_1)
+                .set_color(WHITE)
             )
             # place the label above the Y axis
             y_title.next_to(ax.y_axis, UP, buff=0.3)
@@ -165,8 +167,21 @@ class LineChartScene(MovingCameraScene):
         # ---------------- Graph and points ----------------
         pts = [ax.c2p(i, v) for i, v in enumerate(values)]
 
-        line = VMobject().set_stroke(CUSTOM_BLUE_1, width=4)
-        line.set_points_smoothly(pts)
+        # Main line + "halo" underlay for readability on video backgrounds
+        halo_layers = VGroup(
+            VMobject().set_points_smoothly(pts)
+            .set_stroke(CUSTOM_BLUE_1, width=18, opacity=0.12),
+            VMobject().set_points_smoothly(pts)
+            .set_stroke(CUSTOM_BLUE_1, width=12, opacity=0.18),
+            VMobject().set_points_smoothly(pts)
+            .set_stroke(CUSTOM_BLUE_1, width=8, opacity=0.25),
+        )
+
+        line = VMobject().set_points_smoothly(pts)
+        line.set_stroke(CUSTOM_BLUE_1, width=6, opacity=1.0)  # thicker main stroke
+
+        halo_layers.set_z_index(2.8)  # just under the main line
+        line.set_z_index(3)
 
         # Indices where we want to show markers/values:
         label_idx = [i for i, m in enumerate(labels) if m]
@@ -176,7 +191,7 @@ class LineChartScene(MovingCameraScene):
             *[
                 Text(f"{values[i]:.0f}", weight=BOLD)
                 .scale(0.33)
-                .set_color(CUSTOM_GREY_1)
+                .set_color(WHITE)
                 .next_to(pts[i], UP + 0.1 * RIGHT, buff=0.2)
                 .shift(UP * 0.1)
                 for i in label_idx
@@ -197,7 +212,7 @@ class LineChartScene(MovingCameraScene):
         ).to_edge(UP).shift(UP * 0.5)
 
         # ---------------- Scale scene ----------------
-        chart_group = VGroup(ax, grid_lines, xticks, xlabels, y_number_labels, extra_labels, line, dots, vals)
+        chart_group = VGroup(ax, grid_lines, xticks, xlabels, y_number_labels, extra_labels, halo_layers, line, dots, vals)
         chart_group.scale(1.1)
         chart_group.shift(UP * 0.2)
 
@@ -222,7 +237,15 @@ class LineChartScene(MovingCameraScene):
         )
 
         # PHASE 2: draw line graph
-        self.play(Create(line), run_time=2.0, rate_func=smooth)
+        self.play(
+            AnimationGroup(
+                Create(halo_layers),
+                Create(line),
+                lag_ratio=0.0,
+            ),
+            run_time=2.0,
+            rate_func=smooth,
+        )
 
         # add points + values sequentially
         pops = []
