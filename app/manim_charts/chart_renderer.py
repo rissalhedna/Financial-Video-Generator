@@ -44,7 +44,7 @@ def _render_and_get_path(scene, transparent=False) -> str:
         config.transparent = True
     else:
         config.transparent = False
-    
+    # set preview=True for manim chart video preview
     scene.render(preview=False)
     return str(Path(scene.renderer.file_writer.movie_file_path))
 
@@ -57,13 +57,13 @@ def composite_chart_over_blurred_video(
 ) -> str:
     """
     Composite a transparent chart video over a blurred background video.
-    
+
     Args:
         chart_video: Path to chart video (with transparency or white bg)
         background_video: Path to stock video to use as blurred background
         output_path: Where to save the composited video
         blur_strength: Gaussian blur sigma (default 20)
-    
+
     Returns:
         Path to the composited video
     """
@@ -85,7 +85,7 @@ def composite_chart_over_blurred_video(
         "-crf", "23",
         output_path,
     ]
-    
+
     try:
         subprocess.run(cmd, check=True, capture_output=True)
         return output_path

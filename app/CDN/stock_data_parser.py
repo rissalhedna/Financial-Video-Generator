@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List, Tuple
+from typing import List, Tuple
 from .chart_ranges import ChartRange
 from datetime import datetime
 from collections import OrderedDict
@@ -72,7 +72,7 @@ def format_x_axis_labels(date_labels: List[str], range_: ChartRange) -> List[str
             if b != last_bucket:
                 out[i] = label_fn(dt)
                 last_bucket = b
-
+    # 1 Month: weekly labels
     if range_ == ChartRange.M1:
         STEP_DAYS = 5 # weekly labels
 
@@ -80,11 +80,9 @@ def format_x_axis_labels(date_labels: List[str], range_: ChartRange) -> List[str
             if i % STEP_DAYS == 0:
                 out[i] = dt.strftime("%d.%m.%y")  # e.g.. "05.10"
 
-
-
+    # 6 Months, YTD, 1 Year
     elif range_ in {ChartRange.M6, ChartRange.YTD, ChartRange.Y1}:
-        # monthly ticks (fallback to weekly date labels if only a single month is present)
-
+        # monthly labels and ticks (fallback to weekly date labels if only a single month is present)
         unique_months = {(dt.year, dt.month) for dt in dts}
 
         if len(unique_months) <= 1:
@@ -104,7 +102,7 @@ def format_x_axis_labels(date_labels: List[str], range_: ChartRange) -> List[str
                 bucket_fn=lambda dt: (dt.year, dt.month),
                 label_fn=month_label,
             )
-
+    # 3 Years: quarterly ticks
     elif range_ == ChartRange.Y3:
         # quarterly ticks
         def quarter(dt: datetime) -> int:
@@ -115,7 +113,7 @@ def format_x_axis_labels(date_labels: List[str], range_: ChartRange) -> List[str
         )
 
     else:
-        # Y5 / Y10: yearly ticks
+        # 5 Years, 10 Years: yearly ticks
         mark_on_bucket_change(
             bucket_fn=lambda dt: dt.year,
             label_fn=lambda dt: f"{dt.year}",
