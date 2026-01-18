@@ -22,3 +22,9 @@ tmp/
 # Generated media (manim outputs)
 media/
 app/manim_charts/media/
+
+# Generated video specs
+videos/*.yaml
+
+# CDN chart data cache
+app/CDN/chart_data/
