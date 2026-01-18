@@ -1,9 +1,9 @@
 """
-Charts agent - generates the data segment and chart visuals.
+Charts agent - generates the data segment and chart visuals using real CDN data.
 
 This agent handles both:
 1. Script generation (narration about data)
-2. Chart generation (placeholder for now, ready for implementation)
+2. Chart generation using real stock data from CDN
 """
 from __future__ import annotations
 
@@ -24,6 +24,9 @@ class ChartData:
     x_axis_label: Optional[str] = None
     y_axis_label: Optional[str] = None
     blur_background: bool = False  # If True, composite over blurred stock video
+    # CDN data source info
+    symbol: Optional[str] = None  # e.g., "AAPL.US"
+    chart_range: Optional[str] = None  # e.g., "Y1" for 1 year
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -45,18 +48,19 @@ class ChartSegmentOutput(SegmentOutput):
 
 class ChartsAgent(ScriptAgent):
     """
-    Generates the charts/data section (~10 seconds).
+    Generates the charts/data section (~10 seconds) using real CDN data.
     
     This agent is responsible for:
     1. Writing narration about data/trends
-    2. Extracting chart data from the content
-    3. Generating chart visuals (placeholder for now)
-    
-    When chart generation is implemented, just fill in generate_chart().
+    2. Fetching real chart data from CDN
+    3. Generating chart visuals with Manim
     """
     
     name = "charts"
     target_duration_seconds = 10
+    
+    # Symbol to use for CDN data (set by pipeline)
+    stock_symbol: Optional[str] = None
     
     @property
     def system_prompt(self) -> str:
@@ -78,19 +82,13 @@ DATA PRESENTATION:
 - Make the data part of the narrative, not a separate announcement
 - One clear data point is better than many confusing ones
 
-OUTPUT FORMAT:
-Include chart_data with the key metrics for visualization.
+NOTE: Chart data will be fetched from real stock data sources. Just write compelling narration.
 
 STRICT RULES:
 - NO investment advice (no buy/sell/hold/targets)
 - Educational tone only
 - Flow naturally from previous segments
 - Focus on storytelling, not chart announcements
-
-CHART TYPE GUIDE:
-- "line": For time series, trends over time (e.g. stock price history, revenue growth)
-- "bar": For comparing values across categories (e.g. revenue by year, earnings by quarter)
-- "pie": For showing proportions/percentages (e.g. revenue breakdown by product)
 
 Return JSON with this format:
 {
@@ -99,48 +97,95 @@ Return JSON with this format:
       "text": "Between 2014 and today, the stock jumped from $31 to over $227.",
       "duration_estimate_seconds": 5,
       "on_screen_text": "$31 → $227 (2014-2024)",
-      "chart_data": {
-        "chart_type": "line",
-        "title": "Stock Price",
-        "labels": ["2014", "2018", "2022", "2024"],
-        "values": [31, 45, 150, 227],
-        "x_axis_label": "Year",
-        "y_axis_label": "Price (USD)"
-      }
+      "needs_chart": true
     }
   ]
 }"""
     
     def run(self, context: AgentContext) -> AgentOutput:
-        """Run the agent and process chart data."""
+        """Run the agent and fetch real chart data from CDN."""
         user_prompt = self.build_user_prompt(context)
         data = self._call_llm(self.system_prompt, user_prompt)
         
+        # Try to get real chart data from CDN
+        cdn_chart_data = self._fetch_cdn_chart_data(context.topic)
+        
         segments = []
+        chart_used = False
+        
         for seg in data.get("segments", []):
-            # Parse chart data if present
             chart_data = None
-            if seg.get("chart_data"):
-                cd = seg["chart_data"]
-                chart_data = ChartData(
-                    chart_type=cd.get("chart_type", "line"),
-                    title=cd.get("title", ""),
-                    labels=cd.get("labels", []),
-                    values=cd.get("values", []),
-                    x_axis_label=cd.get("x_axis_label"),
-                    y_axis_label=cd.get("y_axis_label"),
-                )
+            
+            # Use CDN data for the first segment that needs a chart
+            if seg.get("needs_chart", False) and cdn_chart_data and not chart_used:
+                chart_data = cdn_chart_data
+                chart_used = True
             
             segment = ChartSegmentOutput(
                 text=seg.get("text", ""),
                 duration_estimate_seconds=seg.get("duration_estimate_seconds", 5.0),
                 on_screen_text=seg.get("on_screen_text"),
-                is_chart_placeholder=True,
+                is_chart_placeholder=True if chart_data else False,
                 chart_data=chart_data,
             )
             segments.append(segment)
         
         return AgentOutput(segments=segments)
+    
+    def _fetch_cdn_chart_data(self, topic: str) -> Optional[ChartData]:
+        """
+        Fetch real chart data from CDN based on topic.
+        
+        Args:
+            topic: The video topic (e.g., "Apple Inc stock")
+            
+        Returns:
+            ChartData with real stock data, or None if CDN is unavailable
+        """
+        try:
+            from ..CDN import extract_symbol_from_topic, build_chart_data, ChartRange
+            from ..config import get_settings
+            
+            settings = get_settings()
+            
+            # Check if CDN is configured
+            if not settings.cdn_api_url or not settings.cdn_api_key:
+                print("⚠️ CDN not configured, skipping real chart data")
+                return None
+            
+            # Extract symbol from topic
+            symbol = self.stock_symbol or extract_symbol_from_topic(topic)
+            if not symbol:
+                print(f"⚠️ Could not extract stock symbol from topic: {topic}")
+                return None
+            
+            print(f"📊 Fetching chart data for {symbol} from CDN...")
+            
+            # Build chart data (fetches from CDN and creates JSON)
+            json_path = build_chart_data(symbol, ChartRange.Y1)  # Default to 1 year
+            
+            # Load the generated JSON
+            import json
+            chart_json = json.loads(json_path.read_text())
+            
+            # Convert to ChartData
+            return ChartData(
+                chart_type=chart_json.get("chart_type", "line"),
+                title=chart_json.get("title", "Stock Price"),
+                labels=chart_json.get("labels", []),
+                values=chart_json.get("values", []),
+                x_axis_label=chart_json.get("x_axis_label", "Date"),
+                y_axis_label=chart_json.get("y_axis_label", "Price (USD)"),
+                blur_background=True,  # Default to blurred background
+                symbol=symbol,
+                chart_range="Y1",
+            )
+            
+        except Exception as e:
+            print(f"⚠️ Failed to fetch CDN chart data: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     def generate_chart(
         self, 
@@ -160,30 +205,39 @@ Return JSON with this format:
             Path to the generated chart video, or None on failure
         """
         try:
-            from ..manim_charts.create_chart_from_json import render_chart_from_data
-            from ..manim_charts.chart_renderer import composite_chart_over_blurred_video
+            from ..manim_charts.create_chart_from_json import render_chart_from_data, get_default_background
+            from ..manim_charts.chart_video_compositor import compose_with_background
             import shutil
             
             # Convert to dict format expected by manim renderer
             data = chart_data.to_dict()
             
-            # Render the chart (returns path to generated video)
-            video_path = render_chart_from_data(data)
+            # Render the chart with transparency for compositing
+            use_transparency = chart_data.blur_background
+            video_path = render_chart_from_data(data, transparent=use_transparency)
             
             if not video_path or not Path(video_path).exists():
                 return None
             
             output_path.parent.mkdir(parents=True, exist_ok=True)
             
-            # If blur_background is enabled and we have a background video, composite
-            if chart_data.blur_background and background_video and background_video.exists():
-                result = composite_chart_over_blurred_video(
-                    chart_video=video_path,
-                    background_video=str(background_video),
-                    output_path=str(output_path),
-                    blur_strength=25,
-                )
-                return Path(result) if result else None
+            # If blur_background is enabled, composite over background
+            if chart_data.blur_background:
+                try:
+                    # Use provided background or default
+                    if background_video and background_video.exists():
+                        bg_path = str(background_video)
+                    else:
+                        bg_path = str(get_default_background())
+                    
+                    result = compose_with_background(bg_path, video_path)
+                    # Copy result to output path
+                    shutil.copy(result, output_path)
+                    return output_path
+                except Exception as e:
+                    print(f"⚠️ Compositing failed, using plain chart: {e}")
+                    shutil.copy(video_path, output_path)
+                    return output_path
             else:
                 # Just copy the chart video
                 shutil.copy(video_path, output_path)
@@ -191,6 +245,8 @@ Return JSON with this format:
             
         except Exception as e:
             print(f"Warning: Chart generation failed: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_chart_video(self, segment: ChartSegmentOutput, output_dir: Path) -> Optional[Path]:

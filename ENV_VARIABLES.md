@@ -32,6 +32,30 @@ This document describes all environment variables used by the AI Financial Video
 - **Default**: None
 - **Get it**: https://pixabay.com/api/docs/
 
+### `PEXELS_API_KEY`
+
+- **Description**: Pexels API key (fallback for stock footage)
+- **Required**: No
+- **Default**: None
+- **Get it**: https://www.pexels.com/api/
+
+## CDN Settings (Stock Data)
+
+### `CDN_API_URL`
+
+- **Description**: Base URL for the stock data CDN API
+- **Required**: No (but recommended for real chart data)
+- **Example**: `https://api.example.com/v1`
+- **Note**: If not set, chart data will be AI-generated instead of using real stock prices
+
+### `CDN_API_KEY`
+
+- **Description**: API key for the stock data CDN
+- **Required**: No (but required if CDN_API_URL is set)
+- **Example**: `your-cdn-api-key`
+
+## Voice Settings
+
 ### `DEFAULT_VOICE_NAME`
 
 - **Description**: Google TTS Voice Name to use for narration
@@ -100,8 +124,15 @@ OPENAI_API_KEY=sk-...
 GOOGLE_API_KEY=AIzaSy...
 FREEPIK_API_KEY=FPSX...
 
-# Optional
+# Optional - Stock Footage Fallbacks
 PIXABAY_API_KEY=def789...
+PEXELS_API_KEY=abc123...
+
+# Optional - CDN for Real Stock Data (recommended)
+CDN_API_URL=https://api.example.com/v1
+CDN_API_KEY=your-cdn-api-key
+
+# Optional - Voice Settings
 DEFAULT_VOICE_NAME=en-US-Neural2-J
 USE_AI_SPEECH_CONTROL=false
 
@@ -113,6 +144,7 @@ OUTPUT_DIR=out
 TMP_DIR=tmp
 LLM_MODEL=gpt-4o-mini
 HTTP_TIMEOUT=60
+CHART_BLUR_BACKGROUND=true
 ```
 
 ## Speech Control Modes Comparison

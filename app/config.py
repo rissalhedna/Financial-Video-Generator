@@ -47,11 +47,10 @@ class Settings(BaseModel):
         # but we should check at least one is present
         if not any([self.freepik_api_key, self.pixabay_api_key, self.pexels_api_key]):
             missing.append("ONE OF: FREEPIK_API_KEY, PIXABAY_API_KEY, PEXELS_API_KEY")
-        # validate cdn
-        if not self.cdn_api_url:
-            missing.append("CDN_API_URL")
-        if not self.cdn_api_key:
-            missing.append("CDN_API_KEY")
+        
+        # CDN is optional - warn if not configured but don't fail
+        if not self.cdn_api_url or not self.cdn_api_key:
+            print("⚠️ CDN not configured (CDN_API_URL, CDN_API_KEY). Chart data will use AI-generated fallback.")
 
         if missing:
             raise ValueError(

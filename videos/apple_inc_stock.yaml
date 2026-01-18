@@ -4,81 +4,88 @@ voice_speed: medium
 music: inspirational
 output_dir: out/apple_inc_stock
 segments:
-- text: What if I told you there's a company that's more than just sleek gadgets?
+- text: What if I told you Apple's stock once dropped by 80%?
   emotion: curious
   clips:
   - tags:
-    - corporate office building exterior
-    trigger: company
-- text: Picture the iconic apple logo as a symbol of innovation power.
-  emotion: informative
-  clips:
-  - tags:
-    - technology office interior
-    trigger: innovation
-- text: Apple Inc. isn't just about products; it's reshaping entire industries.
+    - stock market decline graph
+    trigger: dropped
+  chart_video: out/apple_inc_stock/charts/chart_79117.mp4
+- text: 'Picture this: A company on the brink of collapse...'
   emotion: dramatic
   clips:
   - tags:
-    - tech company conference room
-    trigger: industries
-- text: Apple's journey began in a garage and evolved into a tech titan.
-  emotion: impactful
-  clips:
-  - tags:
-    - historical tech office
-    trigger: journey
-- text: It's revolutionized music and transformed communication.
-  emotion: informative
-  clips:
-  - tags:
-    - smartphone closeup
-    trigger: communication
-- text: Beyond that, Apple is forging the future with cutting-edge research.
-  emotion: impactful
-  clips:
-  - tags:
-    - research lab technology
-    trigger: research
-- text: This isn't merely about products; it's about shaping the digital age.
-  emotion: informative
-  clips:
-  - tags:
-    - data analytics dashboard
-    trigger: digital
-- text: >-
-    From 2007's iPhone debut, Apple's revenue has surged from $24 billion to an astounding
-    $400 billion today.
+    - empty office space
+    trigger: collapse
+- text: Only to rise and become a tech giant.
   emotion: dramatic
-  on_screen_text: $24B → $400B (2007-Today)
-  chart_video: out/apple_inc_stock/charts/chart_52698.mp4
-- text: >-
-    Apple now commands a market cap of over $2.8 trillion, surpassing the GDP of many
-    countries.
-  emotion: impactful
-  on_screen_text: 'Market Cap: $2.8 Trillion'
-  chart_video: out/apple_inc_stock/charts/chart_52424.mp4
-- text: So, what's next for this tech behemoth?
-  emotion: curious
   clips:
   - tags:
-    - businessman thinking
-    trigger: next
-- text: As Apple continues to innovate, it's not just about today's gadgets anymore.
-  emotion: informative
-  clips:
-  - tags:
-    - innovative technology lab
-    trigger: innovate
-- text: Could it redefine the future once again?
-  emotion: curious
-  clips:
-  - tags:
-    - futuristic cityscape
-    trigger: future
-- text: Stay curious, because Apple's story is far from over.
+    - modern tech headquarters
+    trigger: tech giant
+- text: Curious how that happened? Let's dive into Apple's incredible journey.
   emotion: curious
   clips:
   - tags:
     - person researching computer
-    trigger: curious
+    trigger: dive
+- text: In the late '90s, Apple was losing market share rapidly.
+  emotion: informative
+  clips:
+  - tags:
+    - market share analysis
+    trigger: losing
+- text: Then Steve Jobs returned, initiating a transformative change.
+  emotion: informative
+  clips:
+  - tags:
+    - executive meeting room
+    trigger: returned
+- text: He spearheaded innovation with the iMac and iPod.
+  emotion: informative
+  clips:
+  - tags:
+    - innovative technology products
+    trigger: innovation
+- text: These innovations captured the world's attention.
+  emotion: dramatic
+  clips:
+  - tags:
+    - global media coverage
+    trigger: attention
+- text: In 2001, Apple's stock traded around $1. By 2023, it soared beyond $170.
+  emotion: dramatic
+  on_screen_text: "$1 \x02 $170+ (2001-2023)"
+  clips:
+  - tags:
+    - stock price growth chart
+    trigger: soared
+- text: >-
+    This remarkable growth was driven by groundbreaking releases and strategic vision.
+  emotion: informative
+  on_screen_text: Innovative Growth
+  clips:
+  - tags:
+    - successful product launch
+    trigger: groundbreaking
+- text: >-
+    From near collapse to the pinnacle of success, Apple's story is a testament to
+    resilience and innovation.
+  emotion: impactful
+  clips:
+  - tags:
+    - company success celebration
+    trigger: success
+- text: What if Apple's next breakthrough is just around the corner?
+  emotion: curious
+  clips:
+  - tags:
+    - innovative tech development
+    trigger: breakthrough
+- text: Could it redefine the tech world once again? Stay curious.
+  emotion: curious
+  clips:
+  - tags:
+    - futuristic technology concept
+    trigger: redefine
+stock_symbol: AAPL.US

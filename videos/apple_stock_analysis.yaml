@@ -4,99 +4,85 @@ voice_speed: fast
 music: inspirational
 output_dir: out/apple_stock_analysis
 segments:
-- text: Ever wondered why Apple remains a titan?
+- text: What if I told you Apple is more than just about iPhones?
   emotion: curious
   clips:
   - tags:
-    - corporate headquarters exterior
+    - modern tech office interior
     trigger: Apple
-- text: Imagine a world where their stock defines innovation.
-  emotion: informative
-  clips:
-  - tags:
-    - stock market graph finance
-    trigger: stock
-  - tags:
-    - innovation technology concept
-    trigger: innovation
-- text: Today, let's explore what keeps this giant thriving.
-  emotion: informative
-  clips:
-  - tags:
-    - modern office interior
-    trigger: today
-  - tags:
-    - team meeting discussion
-    trigger: thriving
-- text: Apple's story is one of relentless innovation.
-  emotion: informative
-  clips:
-  - tags:
-    - tech product development
-    trigger: innovation
-- text: Consider how the iPhone revolutionized mobile technology.
+- text: Imagine their stock being as iconic as their products.
   emotion: dramatic
   clips:
   - tags:
-    - smartphone user interface
-    trigger: iPhone
+    - stock market trading screen
+    trigger: stock
+- text: Curious about their financial landscape?
+  emotion: curious
+  clips:
   - tags:
-    - mobile technology concept
-    trigger: revolutionized
-- text: Their ecosystem offers users a seamless experience.
+    - financial analyst working desk
+    trigger: financial
+- text: Let's peek behind the curtain and explore.
   emotion: informative
   clips:
   - tags:
-    - user interface technology
-    trigger: ecosystem
+    - business team meeting
+    trigger: explore
+- text: Apple's financial impact extends beyond devices.
+  emotion: informative
+  clips:
   - tags:
-    - happy user technology
-    trigger: seamless
-- text: This synergy boosts customer loyalty and drives growth.
+    - global business network
+    trigger: impact
+- text: Their stock symbolizes innovation and resilience.
   emotion: impactful
+  clips:
+  - tags:
+    - rising stock chart
+    trigger: innovation
+- text: With a loyal customer base and strong brand identity,
+  emotion: informative
   clips:
   - tags:
     - customer loyalty business
-    trigger: loyalty
-  - tags:
-    - business growth success
-    trigger: growth
-- text: >-
-    From 2014 to today, Apple's market cap soared from $600 billion to over $2.5 trillion.
-  emotion: dramatic
-  on_screen_text: "$600B \x7F $2.5T (2014-2024)"
-  clips:
-  - tags:
-    - stock market chart rising
-    trigger: soared
-- text: This journey shows a steady annual growth rate of about 20%.
-  emotion: informative
-  on_screen_text: 'Annual Growth Rate: ~20%'
-  clips:
-  - tags:
-    - growth rate financial chart
-    trigger: growth rate
-- text: What does the future hold for Apple in this changing tech landscape?
-  emotion: curious
-  clips:
-  - tags:
-    - futuristic technology concept
-    trigger: future
-  - tags:
-    - businessman thinking future
-    trigger: holds
-- text: Could we witness another revolution like the iPhone?
-  emotion: curious
-  clips:
-  - tags:
-    - innovative tech product
-    trigger: revolution
-  - tags:
-    - future technology concept
-    trigger: witness
-- text: Stay tuned, as Apple's story of innovation continues.
+    trigger: loyal
+- text: Apple remains a tech giant shaping the future.
   emotion: impactful
   clips:
   - tags:
-    - team celebration success
-    trigger: continues
+    - futuristic technology cityscape
+    trigger: giant
+- text: Since 2004, Apple’s stock has climbed from $2 to over $170.
+  emotion: dramatic
+  on_screen_text: "$2 \v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\v\
+    \v\v\v\v\v\v\v\v\v\v\v (2004-2023)"
+  clips:
+  - tags:
+    - historical stock growth chart
+    trigger: climbed
+- text: In the past year alone, there's been a 30% growth driven by innovation.
+  emotion: informative
+  on_screen_text: 30% growth (2022-2023)
+  clips:
+  - tags:
+    - stock market growth analytics
+    trigger: growth
+- text: What's next for Apple as they redefine tech boundaries?
+  emotion: curious
+  clips:
+  - tags:
+    - businessman contemplating future
+    trigger: next
+- text: Their journey from $2 to $170 is just one chapter of their story.
+  emotion: informative
+  clips:
+  - tags:
+    - timeline business growth
+    trigger: journey
+- text: Will Apple's stock continue to mirror their iconic status?
+  emotion: curious
+  clips:
+  - tags:
+    - stock market trend analysis
+    trigger: mirror
+stock_symbol: AAPL.US

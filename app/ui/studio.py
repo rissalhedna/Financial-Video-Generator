@@ -1,11 +1,15 @@
 """
-Fiindo Studio — Clean 3-Column Layout with Expandable Agents
+Fiindo Studio — Cinematic Video Creation Experience
+
+A premium UI for generating financial videos with real-time progress,
+live activity logs, and immersive video previews.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import threading
 import time
 import yaml
@@ -22,8 +26,16 @@ from ..video_spec import create_video
 # ═══════════════════════════════════════════════════════════════════════════
 
 @dataclass
+class LogEntry:
+    """Single log entry."""
+    time: str
+    message: str
+    type: str = "info"  # info, success, highlight
+
+
+@dataclass
 class PipelineState:
-    """Global pipeline state."""
+    """Global pipeline state with activity logging."""
     topic: str = ""
     yaml_spec: Optional[Dict[str, Any]] = None
     chart_segments: List[Any] = field(default_factory=list)
@@ -32,9 +44,13 @@ class PipelineState:
     # Agent tracking
     current_agent_step: int = 0
     agent_status: str = "idle"  # idle, running, done, error
+    current_phase: str = ""  # Current phase description
     
-    # UI state
-    expanded_agent: Optional[str] = None  # Which agent section is expanded
+    # Activity log
+    activity_log: List[LogEntry] = field(default_factory=list)
+    
+    # Progress tracking
+    progress_pct: int = 0
     
     @property
     def segments(self) -> List[Dict]:
@@ -46,7 +62,17 @@ class PipelineState:
         self.video_path = None
         self.current_agent_step = 0
         self.agent_status = "idle"
-        self.expanded_agent = None
+        self.current_phase = ""
+        self.activity_log = []
+        self.progress_pct = 0
+    
+    def log(self, message: str, type: str = "info"):
+        """Add a log entry."""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.activity_log.append(LogEntry(time=timestamp, message=message, type=type))
+        # Keep only last 15 entries
+        if len(self.activity_log) > 15:
+            self.activity_log = self.activity_log[-15:]
 
 
 state = PipelineState()
@@ -57,12 +83,12 @@ state = PipelineState()
 # ═══════════════════════════════════════════════════════════════════════════
 
 AGENT_PIPELINE = [
-    {"id": "intro", "name": "Introduction", "icon": "🎭"},
-    {"id": "dev", "name": "Development", "icon": "📝"},
-    {"id": "charts", "name": "Charts", "icon": "📊"},
-    {"id": "conclusion", "name": "Conclusion", "icon": "🎬"},
-    {"id": "revision", "name": "Revision", "icon": "✨"},
-    {"id": "visuals", "name": "Visuals", "icon": "🎨"},
+    {"id": "intro", "name": "Introduction", "icon": "🎭", "desc": "Hook & opening"},
+    {"id": "dev", "name": "Development", "icon": "📝", "desc": "Context & story"},
+    {"id": "charts", "name": "Charts", "icon": "📊", "desc": "Data visualization"},
+    {"id": "conclusion", "name": "Conclusion", "icon": "🎬", "desc": "Call to action"},
+    {"id": "revision", "name": "Revision", "icon": "✨", "desc": "Polish & refine"},
+    {"id": "visuals", "name": "Visuals", "icon": "🎨", "desc": "Visual mapping"},
 ]
 
 
@@ -71,7 +97,7 @@ AGENT_PIPELINE = [
 # ═══════════════════════════════════════════════════════════════════════════
 
 def agent_sidebar_html() -> str:
-    """Generate compact agent sidebar with expandable sections."""
+    """Generate the pipeline stepper with activity log."""
     html = '<div class="fi-agent-sidebar">'
     
     for i, agent in enumerate(AGENT_PIPELINE):
@@ -87,129 +113,115 @@ def agent_sidebar_html() -> str:
         else:
             status = "pending"
         
-        is_expanded = state.expanded_agent == agent["id"]
-        
-        # Agent card (clickable)
         html += f'''
-        <div class="fi-agent-item {status} {'expanded' if is_expanded else ''}" 
-             onclick="document.getElementById('agent-toggle-{agent["id"]}').click()">
+        <div class="fi-agent-item {status}">
             <div class="fi-agent-compact">
                 <span class="fi-agent-icon-sm">{agent['icon']}</span>
                 <span class="fi-agent-name-sm">{agent['name']}</span>
                 <span class="fi-agent-status-dot"></span>
             </div>
+        </div>
         '''
-        
-        # Expandable YAML content
-        if is_expanded and state.yaml_spec:
-            yaml_content = get_agent_yaml_section(agent["id"])
-            html += f'''
-            <div class="fi-agent-yaml">
-                <pre>{yaml_content}</pre>
-            </div>
-            '''
-        
-        html += '</div>'
-        
-        # Hidden toggle button for Gradio
-        html += f'<button id="agent-toggle-{agent["id"]}" style="display:none;"></button>'
     
     html += '</div>'
+    
+    # Add activity log
+    html += activity_log_html()
+    
     return html
 
 
-def get_agent_yaml_section(agent_id: str) -> str:
-    """Extract relevant YAML section for an agent."""
-    if not state.yaml_spec or not state.segments:
-        return "# No content yet"
+def activity_log_html() -> str:
+    """Generate live activity log."""
+    if not state.activity_log:
+        return ''
     
-    # Map agent IDs to segment types
-    section_map = {
-        "intro": ["intro", "introduction", "hook"],
-        "dev": ["development", "context", "background"],
-        "charts": ["chart", "data", "statistics"],
-        "conclusion": ["conclusion", "outro", "ending"],
-        "revision": ["revised"],
-        "visuals": state.segments,  # All segments have visuals
-    }
+    html = '''
+    <div class="fi-activity-log">
+        <div class="fi-activity-header">
+            <span class="dot"></span>
+            Live Activity
+        </div>
+        <div class="fi-activity-content">
+    '''
     
-    if agent_id == "visuals":
-        # Show visual mappings
-        visuals = []
-        for seg in state.segments[:3]:  # First 3 segments
-            vis = seg.get("visuals", [])
-            if vis:
-                visuals.append(f"- {', '.join(vis[:3])}")
-        return "\n".join(visuals) if visuals else "# No visual tags yet"
+    for entry in reversed(state.activity_log[-10:]):
+        html += f'''
+        <div class="fi-log-entry {entry.type}">
+            <span class="time">{entry.time}</span>
+            <span class="msg">{entry.message}</span>
+        </div>
+        '''
     
-    # Find segments for this agent
-    keywords = section_map.get(agent_id, [])
-    matching_segments = []
-    for seg in state.segments:
-        text = seg.get("text", "").lower()
-        if any(kw in text[:50] for kw in keywords):
-            matching_segments.append(seg)
-            if len(matching_segments) >= 2:
-                break
-    
-    if not matching_segments:
-        return "# No content for this section yet"
-    
-    # Format as YAML
-    content = []
-    for seg in matching_segments:
-        content.append(f"text: {seg.get('text', '')[:100]}...")
-        content.append(f"emotion: {seg.get('emotion', 'neutral')}")
-    
-    return "\n".join(content)
+    html += '</div></div>'
+    return html
 
 
 def preview_area_html() -> str:
-    """Generate preview area HTML."""
+    """Generate preview area with progress indicators."""
     if state.video_path:
         return f'''
         <div class="fi-preview-content">
-            <div class="fi-preview-label">📹 Video Output</div>
-            <div class="fi-preview-text">Video rendered successfully! Playing below.</div>
+            <div class="fi-preview-label">🎬 Video Ready</div>
+            <div class="fi-preview-text">Your video has been rendered! Press play to watch.</div>
         </div>
         '''
-    elif state.yaml_spec and state.yaml_spec.get("segments"):
-        # Check if any segments have chart_video paths
-        chart_videos = []
-        for seg in state.segments:
-            if seg.get("chart_video"):
-                chart_videos.append(seg["chart_video"])
+    
+    if state.agent_status == "running":
+        phase = state.current_phase or "Processing..."
+        return f'''
+        <div class="fi-preview-content">
+            <div class="fi-preview-label">
+                <span style="animation: blink 1s infinite;">●</span> 
+                {phase}
+            </div>
+            <div class="fi-preview-text">
+                Step {state.current_agent_step} of {len(AGENT_PIPELINE)}
+            </div>
+            <div class="fi-progress-bar">
+                <div class="fill" style="width: {state.progress_pct}%;"></div>
+            </div>
+        </div>
+        '''
+    
+    if state.yaml_spec and state.yaml_spec.get("segments"):
+        chart_videos = [seg.get("chart_video") for seg in state.segments if seg.get("chart_video")]
         
         if chart_videos:
-            # Chart preview message (actual video plays in video_output component)
             return f'''
             <div class="fi-preview-content">
                 <div class="fi-preview-label">📊 Charts Rendered</div>
-                <div class="fi-preview-text">{len(chart_videos)} chart(s) generated • Playing first chart below</div>
+                <div class="fi-preview-text">
+                    {len(chart_videos)} chart animation(s) ready • Click play to preview
+                </div>
             </div>
             '''
         elif state.chart_segments:
             return f'''
             <div class="fi-preview-content">
-                <div class="fi-preview-label">📊 Charts Ready</div>
-                <div class="fi-preview-text">{len(state.chart_segments)} chart(s) pending render</div>
+                <div class="fi-preview-label">📊 Charts Pending</div>
+                <div class="fi-preview-text">
+                    {len(state.chart_segments)} chart(s) ready to render
+                </div>
             </div>
             '''
         else:
-            n_segments = len(state.segments)
+            n = len(state.segments)
             return f'''
             <div class="fi-preview-content">
-                <div class="fi-preview-label">✓ Script Generated</div>
-                <div class="fi-preview-text">{n_segments} segments created</div>
+                <div class="fi-preview-label">✓ Script Complete</div>
+                <div class="fi-preview-text">
+                    {n} segments • Ready for video creation
+                </div>
             </div>
             '''
-    else:
-        return '''
-        <div class="fi-preview-empty">
-            <div class="fi-preview-icon">🎬</div>
-            <div class="fi-preview-text">Previews will appear here</div>
-        </div>
-        '''
+    
+    return '''
+    <div class="fi-preview-empty">
+        <div class="fi-preview-icon">🎬</div>
+        <div class="fi-preview-text">Enter a topic and generate your video</div>
+    </div>
+    '''
 
 
 def get_first_chart_video() -> Optional[str]:
@@ -217,23 +229,88 @@ def get_first_chart_video() -> Optional[str]:
     if not state.yaml_spec or not state.segments:
         return None
     
+    video_path = None
+    
     for seg in state.segments:
         chart_path = seg.get("chart_video")
         if chart_path:
-            # Ensure absolute path
             chart_path_obj = Path(chart_path)
             if not chart_path_obj.is_absolute():
                 chart_path_obj = Path.cwd() / chart_path
-            # Verify file exists
             if chart_path_obj.exists():
-                return str(chart_path_obj)
-    return None
+                video_path = chart_path_obj
+                break
+    
+    # Fallback: search in charts directory
+    if not video_path:
+        output_dir = state.yaml_spec.get("output_dir", "out/generated")
+        chart_dir = Path(output_dir) / "charts"
+        if chart_dir.exists():
+            chart_files = list(chart_dir.glob("*.mp4"))
+            if chart_files:
+                video_path = chart_files[0].absolute()
+    
+    if not video_path:
+        return None
+    
+    # Re-encode video for browser compatibility
+    return ensure_browser_compatible(video_path)
 
 
-def status_msg_html(msg: str, type: str = "info") -> str:
-    """Generate status message."""
+def ensure_browser_compatible(video_path: Path) -> str:
+    """
+    Ensure video is browser-compatible by re-encoding if needed.
+    
+    Manim outputs can sometimes use codecs that browsers don't play well.
+    This re-encodes to H.264 with web-optimized settings.
+    """
+    import subprocess
+    import tempfile
+    
+    # Create a temp file for the web-compatible version
+    temp_dir = Path(tempfile.gettempdir()) / "fiindo_preview"
+    temp_dir.mkdir(exist_ok=True)
+    
+    output_path = temp_dir / f"preview_{video_path.stem}.mp4"
+    
+    # Skip if already converted recently
+    if output_path.exists():
+        # Check if source is newer than converted
+        if output_path.stat().st_mtime >= video_path.stat().st_mtime:
+            return str(output_path)
+    
+    try:
+        # Re-encode with web-compatible settings
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", str(video_path),
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "23",
+            "-pix_fmt", "yuv420p",  # Required for browser compatibility
+            "-movflags", "+faststart",  # Enable streaming
+            "-an",  # No audio for charts
+            str(output_path)
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, timeout=60)
+        
+        if result.returncode == 0 and output_path.exists():
+            return str(output_path)
+        else:
+            print(f"FFmpeg warning: {result.stderr.decode()[:200]}")
+            return str(video_path)
+            
+    except Exception as e:
+        print(f"Video conversion error: {e}")
+        return str(video_path)
+
+
+def status_msg_html(msg: str, type: str = "info", loading: bool = False) -> str:
+    """Generate animated status message."""
     icons = {"success": "✓", "error": "✕", "info": "ℹ", "warning": "⚠"}
-    return f'<div class="fi-status-{type}"><span>{icons.get(type, "ℹ")}</span> {msg}</div>'
+    loading_class = " loading" if loading else ""
+    return f'<div class="fi-status-{type}{loading_class}"><span>{icons.get(type, "ℹ")}</span> {msg}</div>'
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -241,20 +318,35 @@ def status_msg_html(msg: str, type: str = "info") -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 
 def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood: str, voice: str, speed: str):
-    """Generate script with real-time updates."""
+    """Generate script with real-time progress updates and activity logging."""
     global state
     
     if not topic.strip():
-        yield agent_sidebar_html(), status_msg_html("Enter a topic", "warning"), preview_area_html(), None, ""
+        yield (
+            agent_sidebar_html(),
+            status_msg_html("Please enter a topic", "warning"),
+            preview_area_html(),
+            None,
+            ""
+        )
         return
     
     try:
+        # Reset if new topic
         if topic != state.topic:
             state.reset()
         state.topic = topic
         state.agent_status = "running"
+        state.current_phase = "Initializing AI agents..."
+        state.log(f"Starting generation for: {topic}", "highlight")
         
-        yield agent_sidebar_html(), status_msg_html("Starting AI agents...", "info"), preview_area_html(), None, ""
+        yield (
+            agent_sidebar_html(),
+            status_msg_html("Initializing AI pipeline...", "info", loading=True),
+            preview_area_html(),
+            None,
+            ""
+        )
         
         # Prepare input
         input_data = InputData(
@@ -271,9 +363,21 @@ def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood:
         yaml_path = Path(f"videos/{slug}.yaml")
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
         
+        state.log(f"Target duration: {duration}s, mood: {mood}")
+        
         # Progress callback
         def on_agent_progress(step: int, name: str, status: str):
             state.current_agent_step = step
+            state.progress_pct = int((step / len(AGENT_PIPELINE)) * 100)
+            if status == "running":
+                agent = AGENT_PIPELINE[step - 1] if step > 0 else None
+                if agent:
+                    state.current_phase = f"{agent['icon']} {agent['name']}: {agent['desc']}"
+                    state.log(f"Agent started: {agent['name']}")
+            elif status == "done":
+                agent = AGENT_PIPELINE[step - 1] if step > 0 else None
+                if agent:
+                    state.log(f"✓ {agent['name']} complete", "success")
         
         # Run pipeline in thread
         result = {"spec": None, "charts": None, "error": None}
@@ -281,9 +385,11 @@ def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood:
         def run_pipeline():
             try:
                 spec, charts = generate_script_only(
-                    input_data, output_path=yaml_path,
+                    input_data,
+                    output_path=yaml_path,
                     voice_id=voice or "en-US-Studio-O",
-                    voice_speed=speed, on_progress=on_agent_progress,
+                    voice_speed=speed,
+                    on_progress=on_agent_progress,
                 )
                 result["spec"] = spec
                 result["charts"] = charts
@@ -293,32 +399,43 @@ def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood:
         thread = threading.Thread(target=run_pipeline)
         thread.start()
         
-        # Poll for updates
+        # Poll for updates with UI refresh
         last_step = 0
         while thread.is_alive():
             if state.current_agent_step != last_step:
-                agent_name = AGENT_PIPELINE[state.current_agent_step - 1]["name"] if state.current_agent_step > 0 else "Starting"
+                agent = AGENT_PIPELINE[state.current_agent_step - 1] if state.current_agent_step > 0 else None
+                agent_name = agent["name"] if agent else "Starting"
                 yield (
                     agent_sidebar_html(),
-                    status_msg_html(f"Running: {agent_name}...", "info"),
-                    preview_area_html(), None, ""
+                    status_msg_html(f"Running: {agent_name}...", "info", loading=True),
+                    preview_area_html(),
+                    None,
+                    ""
                 )
                 last_step = state.current_agent_step
-            time.sleep(0.3)
+            time.sleep(0.25)
         
         thread.join()
         
         if result["error"]:
             state.agent_status = "error"
+            state.log(f"Error: {str(result['error'])}", "error")
             raise result["error"]
         
         # Success
         state.yaml_spec = result["spec"]
         state.chart_segments = result["charts"]
         state.agent_status = "done"
+        state.current_phase = ""
+        state.progress_pct = 100
         
         n = len(state.segments)
-        msg = f"✓ Generated {n} segments · {len(result['charts'])} charts ready"
+        charts_count = len(result["charts"])
+        state.log(f"✓ Generated {n} segments, {charts_count} charts", "success")
+        
+        msg = f"Script ready: {n} segments"
+        if charts_count > 0:
+            msg += f" • {charts_count} charts to render"
         
         yield (
             agent_sidebar_html(),
@@ -330,27 +447,26 @@ def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood:
         
     except Exception as e:
         state.agent_status = "error"
-        import traceback; traceback.print_exc()
+        import traceback
+        traceback.print_exc()
         yield (
             agent_sidebar_html(),
             status_msg_html(f"Error: {str(e)}", "error"),
-            preview_area_html(), None, ""
+            preview_area_html(),
+            None,
+            ""
         )
 
 
-def toggle_agent_section(agent_id: str):
-    """Toggle expansion of an agent section."""
-    if state.expanded_agent == agent_id:
-        state.expanded_agent = None
-    else:
-        state.expanded_agent = agent_id
-    return agent_sidebar_html()
-
-
 def render_charts_flow():
-    """Render charts."""
+    """Render charts with progress updates."""
     if not state.yaml_spec:
-        yield status_msg_html("Generate script first", "warning"), preview_area_html(), None, ""
+        yield (
+            status_msg_html("Generate a script first", "warning"),
+            preview_area_html(),
+            None,
+            ""
+        )
         return
     
     if not state.chart_segments:
@@ -363,52 +479,67 @@ def render_charts_flow():
         return
     
     try:
-        yield status_msg_html("Rendering charts...", "info"), preview_area_html(), None, ""
+        state.log("Starting chart rendering...", "highlight")
+        state.current_phase = "📊 Rendering chart animations..."
+        state.agent_status = "running"
+        
+        yield (
+            status_msg_html(f"Rendering {len(state.chart_segments)} chart(s)...", "info", loading=True),
+            preview_area_html(),
+            None,
+            ""
+        )
         
         # Render charts
         state.yaml_spec = generate_charts(state.yaml_spec, state.chart_segments)
-        
-        # Debug: Print segment structure
-        print(f"📊 Total segments: {len(state.segments)}")
-        for i, seg in enumerate(state.segments):
-            print(f"📊 Segment {i}: chart_video = {seg.get('chart_video')}, is_chart_placeholder = {seg.get('is_chart_placeholder')}")
+        state.agent_status = "done"
+        state.current_phase = ""
         
         # Get first chart video to display
         first_chart = get_first_chart_video()
         
-        print(f"📊 Chart video path from function: {first_chart}")
+        state.log(f"✓ Rendered {len(state.chart_segments)} chart(s)", "success")
+        
         if first_chart:
-            print(f"📊 Chart file exists: {Path(first_chart).exists()}")
-            print(f"📊 Chart file size: {Path(first_chart).stat().st_size if Path(first_chart).exists() else 'N/A'}")
-        else:
-            # Try to find chart files manually
-            print("📊 No chart path found in segments, searching for chart files...")
-            output_dir = state.yaml_spec.get("output_dir", "out/generated")
-            chart_dir = Path(output_dir) / "charts"
-            if chart_dir.exists():
-                chart_files = list(chart_dir.glob("*.mp4"))
-                print(f"📊 Found {len(chart_files)} chart files in {chart_dir}")
-                if chart_files:
-                    first_chart = str(chart_files[0].absolute())
-                    print(f"📊 Using first chart file: {first_chart}")
+            state.log(f"Chart preview ready: {Path(first_chart).name}")
         
         yield (
-            status_msg_html(f"✓ Rendered {len(state.chart_segments)} charts", "success"),
+            status_msg_html(f"✓ {len(state.chart_segments)} chart(s) rendered", "success"),
             preview_area_html(),
-            first_chart,  # Display first chart in video player
+            first_chart,
             yaml.dump(state.yaml_spec, default_flow_style=False, allow_unicode=True)
         )
+        
     except Exception as e:
-        import traceback; traceback.print_exc()
-        yield status_msg_html(f"Error: {str(e)}", "error"), preview_area_html(), None, ""
+        state.agent_status = "error"
+        state.log(f"Chart error: {str(e)}", "error")
+        import traceback
+        traceback.print_exc()
+        yield (
+            status_msg_html(f"Error: {str(e)}", "error"),
+            preview_area_html(),
+            None,
+            ""
+        )
 
 
 def create_video_flow(yaml_content: str):
-    """Create video."""
+    """Create video with progress updates."""
     try:
-        yield status_msg_html("Creating video...", "info"), preview_area_html(), None
+        state.log("Starting video creation...", "highlight")
+        state.current_phase = "🎬 Fetching stock footage..."
+        state.agent_status = "running"
+        
+        yield (
+            status_msg_html("Creating video (this may take a minute)...", "info", loading=True),
+            preview_area_html(),
+            None
+        )
+        
         spec = yaml.safe_load(yaml_content)
         state.yaml_spec = spec
+        
+        state.log("Downloading stock footage...")
         
         video = create_video(spec, force_refresh=False)
         video_path = Path(video)
@@ -416,18 +547,30 @@ def create_video_flow(yaml_content: str):
             video_path = Path.cwd() / video_path
         
         state.video_path = str(video_path)
+        state.agent_status = "done"
+        state.current_phase = ""
         
-        print(f"🎬 Video path: {state.video_path}")
-        print(f"🎬 Video exists: {video_path.exists()}")
-        if video_path.exists():
-            print(f"🎬 Video size: {video_path.stat().st_size} bytes")
-            print(f"🎬 Video extension: {video_path.suffix}")
+        state.log(f"✓ Video created: {video_path.name}", "success")
         
-        # Return the path as string for Gradio
-        yield status_msg_html("✓ Video created!", "success"), preview_area_html(), str(video_path)
+        # Ensure browser compatibility for final video
+        playable_path = ensure_browser_compatible(video_path)
+        
+        yield (
+            status_msg_html("✓ Video ready! Press play to watch", "success"),
+            preview_area_html(),
+            playable_path
+        )
+        
     except Exception as e:
-        import traceback; traceback.print_exc()
-        yield status_msg_html(f"Error: {str(e)}", "error"), preview_area_html(), None
+        state.agent_status = "error"
+        state.log(f"Video error: {str(e)}", "error")
+        import traceback
+        traceback.print_exc()
+        yield (
+            status_msg_html(f"Error: {str(e)}", "error"),
+            preview_area_html(),
+            None
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -441,103 +584,117 @@ def load_css() -> str:
 
 
 def create_ui() -> gr.Blocks:
-    """Create the 3-column Fiindo Studio UI."""
+    """Create the Fiindo Studio UI."""
     
     with gr.Blocks(
         title="Fiindo Studio",
-        theme=gr.themes.Base(primary_hue="violet", neutral_hue="zinc", font=gr.themes.GoogleFont("Inter")),
+        theme=gr.themes.Base(
+            primary_hue="violet",
+            neutral_hue="zinc",
+            font=gr.themes.GoogleFont("Space Grotesk")
+        ),
         css=load_css(),
     ) as app:
         
-        gr.HTML('<div class="fi-header"><div class="fi-logo">🎬 Fiindo Studio</div></div>')
+        # Header
+        gr.HTML('''
+        <div class="fi-header">
+            <div class="fi-logo">Fiindo Studio</div>
+        </div>
+        ''')
         
-        # Add JavaScript to ensure video playback works
+        # Video playback fix
         gr.HTML('''
         <script>
-        // Ensure video controls work properly
         document.addEventListener('DOMContentLoaded', function() {
             function fixVideos() {
-                const videos = document.querySelectorAll('video');
-                videos.forEach(function(video) {
+                document.querySelectorAll('video').forEach(function(video) {
                     video.setAttribute('controls', 'controls');
                     video.setAttribute('preload', 'auto');
                     video.removeAttribute('controlsList');
-                    
-                    // Add error handler
-                    video.onerror = function() {
-                        console.error('Video error:', video.error);
-                    };
-                    
-                    // Force reload if needed
-                    if (video.src && video.readyState === 0) {
-                        video.load();
-                    }
+                    if (video.src && video.readyState === 0) video.load();
                 });
             }
-            
-            // Run initially and periodically
             fixVideos();
-            setInterval(fixVideos, 2000);
+            setInterval(fixVideos, 1500);
+            
+            // Auto-scroll activity log
+            const observer = new MutationObserver(function() {
+                const logs = document.querySelectorAll('.fi-activity-content');
+                logs.forEach(log => log.scrollTop = 0);
+            });
+            observer.observe(document.body, {childList: true, subtree: true});
         });
         </script>
         ''')
         
-        # 3-COLUMN LAYOUT
+        # Main layout
         with gr.Row(elem_classes="fi-main-row"):
             
-            # LEFT: Agent Pipeline
-            with gr.Column(scale=1, min_width=280, elem_classes="fi-col-left"):
-                gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0;">🤖 PIPELINE</h3>')
+            # LEFT: Pipeline & Activity
+            with gr.Column(scale=1, min_width=300, elem_classes="fi-col-left"):
+                gr.HTML('<h3 style="color: var(--text-tertiary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0;">PIPELINE</h3>')
                 agent_sidebar = gr.HTML(agent_sidebar_html())
             
-            # MIDDLE: Input Form (Compact)
-            with gr.Column(scale=1, min_width=320, elem_classes="fi-col-middle"):
-                gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0;">📝 CONFIGURATION</h3>')
+            # MIDDLE: Configuration
+            with gr.Column(scale=1, min_width=340, elem_classes="fi-col-middle"):
+                gr.HTML('<h3 style="color: var(--text-tertiary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0;">CONFIGURATION</h3>')
                 
-                topic = gr.Textbox(label="Topic", placeholder="e.g., Tesla Stock Analysis", lines=1, elem_classes="fi-input-compact")
+                topic = gr.Textbox(
+                    label="Topic",
+                    placeholder="e.g., Apple Stock Analysis, Tesla Q4 Earnings",
+                    lines=1
+                )
                 
                 with gr.Row():
-                    facts = gr.Textbox(label="Facts", placeholder="One per line", lines=2, elem_classes="fi-input-compact")
-                    news = gr.Textbox(label="News", placeholder="One per line", lines=2, elem_classes="fi-input-compact")
+                    facts = gr.Textbox(label="Key Facts", placeholder="One fact per line", lines=3)
+                    news = gr.Textbox(label="Recent News", placeholder="One item per line", lines=3)
                 
                 with gr.Row():
-                    duration = gr.Slider(30, 180, 60, step=10, label="Duration (s)", elem_classes="fi-compact")
-                    mood = gr.Dropdown(["informative", "excited", "dramatic"], value="informative", label="Mood", elem_classes="fi-compact")
+                    duration = gr.Slider(30, 180, 60, step=15, label="Duration (seconds)")
+                    mood = gr.Dropdown(
+                        ["informative", "excited", "dramatic"],
+                        value="informative",
+                        label="Mood"
+                    )
                 
-                with gr.Accordion("⚙️ Advanced", open=False):
-                    voice = gr.Dropdown([("Studio O", "en-US-Studio-O"), ("Neural2 J", "en-US-Neural2-J")], value="en-US-Studio-O", label="Voice")
+                with gr.Accordion("⚙️ Voice Settings", open=False):
+                    voice = gr.Dropdown(
+                        [("Studio O (Natural)", "en-US-Studio-O"), ("Neural2 J (Energetic)", "en-US-Neural2-J")],
+                        value="en-US-Studio-O",
+                        label="Voice"
+                    )
                     speed = gr.Dropdown(["slow", "medium", "fast"], value="fast", label="Speed")
                 
-                gr.Markdown("---")
+                gr.HTML('<hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">')
                 
-                generate_btn = gr.Button("🚀 Generate Script", variant="primary", size="lg", elem_classes="fi-btn-primary")
+                generate_btn = gr.Button("🚀 Generate Script", variant="primary", size="lg")
                 
                 with gr.Row():
                     charts_btn = gr.Button("📊 Render Charts", size="sm")
-                    video_btn = gr.Button("🎥 Create Video", size="sm")
+                    video_btn = gr.Button("🎬 Create Video", size="sm")
                 
-                status_display = gr.HTML(status_msg_html("Ready", "info"))
+                status_display = gr.HTML(status_msg_html("Ready to create", "info"))
             
-            # RIGHT: Preview Area
-            with gr.Column(scale=1, min_width=320, elem_classes="fi-col-right"):
-                gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 0 0 16px 0;">🎬 PREVIEW</h3>')
+            # RIGHT: Preview
+            with gr.Column(scale=1, min_width=360, elem_classes="fi-col-right"):
+                gr.HTML('<h3 style="color: var(--text-tertiary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0;">PREVIEW</h3>')
                 preview_display = gr.HTML(preview_area_html())
                 
-                with gr.Group():
-                    video_output = gr.Video(
-                        label=None, 
-                        height=300, 
-                        visible=True,
-                        autoplay=False,
-                        show_label=False,
-                        elem_classes="fi-video-player"
-                    )
+                video_output = gr.Video(
+                    label=None,
+                    height=340,
+                    visible=True,
+                    autoplay=True,
+                    show_label=False,
+                    elem_classes="fi-video-player"
+                )
         
-        # Bottom: YAML Editor
-        gr.HTML('<h3 style="color: #ffffff !important; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin: 20px 20px 12px 20px;">📄 YAML EDITOR</h3>')
-        yaml_editor = gr.Code(language="yaml", label=None, lines=12, elem_classes="fi-yaml-editor")
+        # YAML Editor
+        gr.HTML('<h3 style="color: var(--text-tertiary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 24px 24px 12px 24px;">SCRIPT EDITOR</h3>')
+        yaml_editor = gr.Code(language="yaml", label=None, lines=14, elem_classes="fi-yaml-editor")
         
-        # EVENT HANDLERS
+        # Event handlers
         generate_btn.click(
             generate_script_flow,
             inputs=[topic, facts, news, duration, mood, voice, speed],
@@ -555,12 +712,6 @@ def create_ui() -> gr.Blocks:
             inputs=[yaml_editor],
             outputs=[status_display, preview_display, video_output],
         )
-        
-        # Agent toggle handlers
-        for agent in AGENT_PIPELINE:
-            agent_id = agent["id"]
-            # This would need JavaScript or a different approach for true interactivity
-            # For now, clicking updates the view but doesn't persist without a full render
     
     return app
 

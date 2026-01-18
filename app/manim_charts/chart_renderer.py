@@ -1,8 +1,14 @@
+"""
+Chart Renderer - Wrapper functions for Manim chart rendering.
+"""
+from __future__ import annotations
+
 from pathlib import Path
 import subprocess
-from line_chart import LineChartScene
-from pie_chart import PieChartScene
-from bar_chart import BarChartScene
+
+from .line_chart import LineChartScene
+from .pie_chart import PieChartScene
+from .bar_chart import BarChartScene
 
 
 def render_line_chart(labels, values, title="Line Chart", x_axis_label=None, y_axis_label=None, transparent=False) -> str:
@@ -39,16 +45,11 @@ def render_bar_chart(labels, values, title, x_axis_label=None, y_axis_label=None
 
 def _render_and_get_path(scene) -> str:
     """Render scene and return path to video."""
-    # This is broken because the config is not bound to a scene
-    # if transparent:
-    #     config.transparent = True
-    # else:
-    #     config.transparent = False
     # set preview=True for manim chart video preview
     scene.render(preview=False)
     return str(Path(scene.renderer.file_writer.movie_file_path))
 
-# todo: can be deleted
+
 def composite_chart_over_blurred_video(
     chart_video: str,
     background_video: str,

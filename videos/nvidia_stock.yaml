@@ -1,0 +1,81 @@
+title: NVIDIA Stock Explainer
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/nvidia_stock
+segments:
+- text: What if I told you the future of tech could fit in the palm of your hand?
+  emotion: curious
+  clips:
+  - tags:
+    - innovative technology devices
+    trigger: future of tech
+- text: Imagine a world where every pixel on your screen leaps to life.
+  emotion: curious
+  clips:
+  - tags:
+    - high resolution screens closeup
+    trigger: pixels
+- text: 'Intrigued? Let''s dive into the powerhouse driving these innovations: NVIDIA!'
+  emotion: curious
+  clips:
+  - tags:
+    - NVIDIA headquarters building
+    trigger: NVIDIA
+- text: NVIDIA started as a company making graphics cards.
+  emotion: informative
+  clips:
+  - tags:
+    - graphics card manufacturing
+    trigger: graphics cards
+- text: Yet its vision quickly expanded beyond gaming.
+  emotion: informative
+  clips:
+  - tags:
+    - technology innovation expansion
+    trigger: expanded
+- text: It's the brain behind AI, powering self-driving cars and supercomputers.
+  emotion: informative
+  clips:
+  - tags:
+    - AI technology self-driving cars
+    trigger: AI
+- text: This isn't just tech for tech's sake; it's reshaping industries.
+  emotion: impactful
+  clips:
+  - tags:
+    - industry transformation technology
+    trigger: reshaping
+- text: From 2014 to today, the stock jumped from $31 to over $227.
+  emotion: dramatic
+  on_screen_text: "$31 \x7F\x7F $227 (2014-2023)"
+  clips:
+  - tags:
+    - stock market growth chart
+    trigger: stock jumped
+- text: This incredible growth illustrates NVIDIA's influence on the tech industry.
+  emotion: dramatic
+  on_screen_text: NVIDIA's Influence
+  clips:
+  - tags:
+    - NVIDIA impact technology sector
+    trigger: influence
+- text: NVIDIA's journey shows how innovation can transcend traditional boundaries.
+  emotion: informative
+  clips:
+  - tags:
+    - innovation technology breakthrough
+    trigger: innovation
+- text: As it continues to pioneer, what will the next frontier hold?
+  emotion: curious
+  clips:
+  - tags:
+    - future technology exploration
+    trigger: next frontier
+- text: Could NVIDIA redefine even more aspects of our digital lives?
+  emotion: curious
+  clips:
+  - tags:
+    - digital transformation technology
+    trigger: redefine
+stock_symbol: NVDA.US

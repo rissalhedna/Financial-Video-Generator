@@ -34,6 +34,27 @@ from typing import Callable
 ProgressCallback = Callable[[int, str, str], None]
 
 
+def _extract_stock_symbol(topic: str) -> Optional[str]:
+    """
+    Extract stock symbol from topic using CDN symbol extractor.
+    
+    Args:
+        topic: Video topic (e.g., "Apple Inc stock")
+        
+    Returns:
+        Stock symbol (e.g., "AAPL.US") or None
+    """
+    try:
+        from .CDN import extract_symbol_from_topic
+        symbol = extract_symbol_from_topic(topic)
+        if symbol:
+            print(f"📈 Detected stock symbol: {symbol}")
+        return symbol
+    except Exception as e:
+        print(f"⚠️ Could not extract symbol: {e}")
+        return None
+
+
 def generate_script_only(
     input_data: InputData,
     output_path: Optional[Path] = None,
@@ -67,6 +88,9 @@ def generate_script_only(
         previous_segments=[],
     )
     
+    # Extract stock symbol from topic for CDN data fetching
+    stock_symbol = _extract_stock_symbol(input_data.topic)
+    
     # Calculate duration targets
     total_target = input_data.target_seconds
     intro_target = max(10, total_target * 0.25)
@@ -83,6 +107,8 @@ def generate_script_only(
     
     charts_agent = ChartsAgent()
     charts_agent.target_duration_seconds = int(charts_target)
+    # Pass the stock symbol to the charts agent for CDN data fetching
+    charts_agent.stock_symbol = stock_symbol
     
     conclusion_agent = ConclusionAgent()
     conclusion_agent.target_duration_seconds = int(conclusion_target)
@@ -119,8 +145,8 @@ def generate_script_only(
         notify(2, "Development", "done")
         pbar.update(1)
         
-        # Step 3: Charts (AI only - no rendering)
-        pbar.set_description("Charts (AI)")
+        # Step 3: Charts (fetches real data from CDN)
+        pbar.set_description("Charts (CDN)")
         notify(3, "Charts", "running")
         charts_output = charts_agent.run(context)
         
@@ -169,6 +195,10 @@ def generate_script_only(
         output_dir=output_dir,
     )
     
+    # Store the stock symbol in the spec for later use
+    if stock_symbol:
+        spec["stock_symbol"] = stock_symbol
+    
     if output_path:
         save_yaml_spec(spec, output_path)
         print(f"✅ Script saved to: {output_path}")
@@ -197,7 +227,7 @@ def generate_charts(
         return spec
     
     from .config import get_settings
-    import glob
+    from .manim_charts.create_chart_from_json import get_default_background
     
     settings = get_settings()
     use_blur_bg = settings.chart_blur_background
@@ -210,23 +240,27 @@ def generate_charts(
     charts_agent = ChartsAgent()
     chart_video_paths: List[str] = []
     
-    print(f"📊 Rendering {len(chart_segments)} chart animation(s)...")
+    print(f"📊 Rendering {len(chart_segments)} chart animation(s) with real CDN data...")
     
     for i, seg in enumerate(tqdm(chart_segments, desc="Charts", unit="chart")):
         chart_path = chart_output_dir / f"chart_{hash(seg.text) % 100000}.mp4"
         
-        if use_blur_bg:
+        # Enable blur background if configured
+        if use_blur_bg and seg.chart_data:
             seg.chart_data.blur_background = True
-            stock_videos = glob.glob("tmp/videos/*.mp4")
-            bg_video = Path(stock_videos[0]) if stock_videos else None
-        else:
+        
+        # Use default background from assets
+        try:
+            bg_video = get_default_background() if use_blur_bg else None
+        except FileNotFoundError:
             bg_video = None
         
         result = charts_agent.generate_chart(seg.chart_data, chart_path, background_video=bg_video)
         if result:
             chart_video_paths.append(str(result))
-            bg_info = " (with blurred bg)" if use_blur_bg and bg_video else ""
-            print(f"📊 Generated chart {i+1}: {result.name}{bg_info}")
+            bg_info = " (with background)" if use_blur_bg and bg_video else ""
+            symbol_info = f" [{seg.chart_data.symbol}]" if seg.chart_data and seg.chart_data.symbol else ""
+            print(f"📊 Generated chart {i+1}: {result.name}{symbol_info}{bg_info}")
     
     # Update spec segments with chart video paths
     chart_idx = 0
@@ -326,4 +360,3 @@ def generate_and_create_video(
     
     # Create the video
     return create_video(spec, force_refresh=force_refresh, burn_subtitles=burn_subtitles)
-

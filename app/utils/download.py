@@ -57,13 +57,24 @@ def get_video_info(path: Path) -> tuple[int, int] | None:
     return None
 
 
-def download_file(url: str, dest: Path, max_retries: int = 2) -> Path:
-    """Download a file from URL to destination path."""
+def download_file(url: str, dest: Path, max_retries: int = 2, skip_validation: bool = False) -> Path:
+    """
+    Download a file from URL to destination path.
+    
+    Args:
+        url: URL to download from
+        dest: Destination path
+        max_retries: Number of retry attempts
+        skip_validation: If True, skip expensive ffprobe validation (faster)
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
     
-    # Check if valid file already exists
-    if dest.exists() and dest.stat().st_size > 0 and is_video_valid(dest):
-        return dest
+    # Quick cache check: skip expensive validation if file looks valid
+    if dest.exists() and dest.stat().st_size > 10000:  # Min 10KB
+        if skip_validation:
+            return dest
+        if is_video_valid(dest):
+            return dest
     
     # Delete invalid cached file
     if dest.exists():
@@ -95,8 +106,8 @@ def download_file(url: str, dest: Path, max_retries: int = 2) -> Path:
     if zipfile.is_zipfile(dest):
         _extract_video_from_zip(dest)
     
-    # Validate final file
-    if not is_video_valid(dest):
+    # Validate final file (skip if requested for speed)
+    if not skip_validation and not is_video_valid(dest):
         try:
             dest.unlink()
         except Exception:

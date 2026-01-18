@@ -42,6 +42,10 @@ class VideoCache:
     
     Maintains backward compatibility with existing cache files
     while adding metadata tracking for new downloads.
+    
+    Optimized with:
+    - Debounced manifest saves (batch writes)
+    - Optional content hash computation
     """
     
     MANIFEST_FILE = "cache_manifest.json"
@@ -51,6 +55,7 @@ class VideoCache:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_path = cache_dir / self.MANIFEST_FILE
         self._manifest: Dict[str, CacheEntry] = {}
+        self._dirty = False  # Track if manifest needs saving
         self._load_manifest()
     
     def _load_manifest(self) -> None:
@@ -64,9 +69,27 @@ class VideoCache:
                 self._manifest = {}
     
     def _save_manifest(self) -> None:
-        """Save manifest to disk."""
+        """Save manifest to disk immediately."""
         data = {k: asdict(v) for k, v in self._manifest.items()}
         self.manifest_path.write_text(json.dumps(data, indent=2))
+        self._dirty = False
+    
+    def _save_manifest_debounced(self) -> None:
+        """Mark manifest as dirty for batched saving."""
+        self._dirty = True
+    
+    def flush(self) -> None:
+        """Force save manifest if dirty. Call after batch operations."""
+        if self._dirty:
+            self._save_manifest()
+    
+    def __del__(self):
+        """Save manifest on cleanup."""
+        try:
+            if self._dirty:
+                self._save_manifest()
+        except Exception:
+            pass
     
     def _compute_content_hash(self, file_path: Path) -> str:
         """Compute hash of file content for deduplication."""
@@ -111,6 +134,7 @@ class VideoCache:
         height: int,
         duration_seconds: float,
         file_path: Optional[Path] = None,  # Allow override for migration
+        compute_hash: bool = False,  # Skip hash by default for speed
     ) -> None:
         """Add or update a cache entry with metadata."""
         key = self.get_cache_key(segment_id, clip_idx, tags)
@@ -119,8 +143,10 @@ class VideoCache:
         if not path.exists():
             return
         
-        # Compute content hash for deduplication
-        content_hash = self._compute_content_hash(path)
+        # Skip expensive content hash computation by default
+        content_hash = None
+        if compute_hash:
+            content_hash = self._compute_content_hash(path)
         
         entry = CacheEntry(
             file_path=str(path),
@@ -137,7 +163,7 @@ class VideoCache:
         )
         
         self._manifest[key] = entry
-        self._save_manifest()
+        self._save_manifest_debounced()
     
     def add_entry_by_path(
         self,

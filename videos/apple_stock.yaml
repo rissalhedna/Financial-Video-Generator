@@ -1,0 +1,87 @@
+title: Apple stock Explainer
+voice_id: en-US-Studio-O
+voice_speed: fast
+music: inspirational
+output_dir: out/apple_stock
+segments:
+- text: What if I told you the Apple stock story isn't just about devices?
+  emotion: curious
+  clips:
+  - tags:
+    - modern office building exterior
+    trigger: Apple stock
+- text: 'Imagine this: Apple isn''t just shaping tech, it''s redefining the future.'
+  emotion: dramatic
+  clips:
+  - tags:
+    - city skyline technology hub
+    trigger: redefining
+- text: Curious about how this innovation powerhouse keeps investors engaged?
+  emotion: curious
+  clips:
+  - tags:
+    - financial analysts working
+    trigger: investors
+- text: Apple's secret? A relentless drive for innovation.
+  emotion: impactful
+  clips:
+  - tags:
+    - office team brainstorming
+    trigger: innovation
+- text: From sleek designs to groundbreaking features, Apple stays ahead.
+  emotion: informative
+  clips:
+  - tags:
+    - product design technology
+    trigger: sleek designs
+- text: >-
+    It's not just about products; services like Apple Music and iCloud fuel their
+    growth.
+  emotion: informative
+  clips:
+  - tags:
+    - cloud computing data center
+    trigger: iCloud
+- text: With a loyal customer base, they turn futuristic dreams into reality.
+  emotion: impactful
+  clips:
+  - tags:
+    - technology consumer engagement
+    trigger: customer base
+- text: >-
+    Between 2014 and 2024, Apple's stock soared from $31 to over $227, a remarkable
+    growth story.
+  emotion: dramatic
+  on_screen_text: "$31 \x02 $227 (2014-2024)"
+  clips:
+  - tags:
+    - stock market growth chart
+    trigger: growth story
+- text: >-
+    In just the last year, their market cap surged by 33%, highlighting unstoppable
+    momentum.
+  emotion: impactful
+  on_screen_text: 33% market cap growth (2023)
+  clips:
+  - tags:
+    - stock market trading success
+    trigger: market cap
+- text: So, what's next for Apple in this ever-evolving landscape?
+  emotion: curious
+  clips:
+  - tags:
+    - businessman thinking future
+    trigger: what's next
+- text: As they continue to innovate, the possibilities seem endless.
+  emotion: dramatic
+  clips:
+  - tags:
+    - innovation technology possibilities
+    trigger: innovate
+- text: Could the next leap forward be just around the corner?
+  emotion: curious
+  clips:
+  - tags:
+    - futuristic city technology
+    trigger: next leap
+stock_symbol: AAPL.US
