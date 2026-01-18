@@ -2,7 +2,7 @@ import json
 import subprocess
 
 from chart_video_compositor import compose_with_background
-from .chart_renderer import render_line_chart, render_pie_chart, render_bar_chart
+from chart_renderer import render_line_chart, render_pie_chart, render_bar_chart
 
 def load_chart_json(path: str) -> dict:
     """Read a JSON file from the given path and return the parsed Python dict."""
@@ -50,7 +50,7 @@ def render_chart_from_data(data: dict, transparent: bool = False) -> str:
         raise ValueError(f"Unknown chart_type: {chart_type}")
 
 
-def render_chart_from_json_file(path: str) -> str:
+def render_chart_from_json_file(path: str, transparent: bool = False) -> str:
     """Load JSON from `path` and render the corresponding chart.
 
     This function can be called by an external pipeline by passing a string
@@ -60,8 +60,10 @@ def render_chart_from_json_file(path: str) -> str:
         str: Path to the generated video file (final_path)
     """
     data = load_chart_json(path)
-    chart_video_path = render_chart_from_data(data)
-
+    chart_video_path = render_chart_from_data(data, transparent)
+    if not transparent:
+        return chart_video_path
+    # If transparent, composite chart over blurred background
     background_mp4 = "../../assets/chart_backgrounds/chart_background_1.mp4"
     final_path = compose_with_background(background_mp4, chart_video_path)
 
@@ -77,7 +79,7 @@ if __name__ == "__main__":
 
     json_path = "../CDN/chart_data/aapl_us_Y1_20260117_194824.json"
 
-    videopath = render_chart_from_json_file(json_path)
+    videopath = render_chart_from_json_file(json_path, transparent=True)
 
     # open video
     subprocess.run(["open", videopath], check=False)

@@ -21,8 +21,6 @@ CUSTOM_YELLOW_1 = "#ff8000"
 Text.set_default(font="Montserrat")
 config.pixel_width = 1080
 config.pixel_height = 1920
-#config.background_color = "#cccccc"
-#config.transparent = True
 
 # ============================================================
 # Manim scene for bar chart
@@ -35,6 +33,7 @@ class BarChartScene(Scene):
         self.x_axis_label_text = x_axis_label
         self.y_axis_label_text = y_axis_label
         self.transparent_bg = transparent
+        config.transparent = transparent
         super().__init__(**kwargs)
 
     def construct(self):

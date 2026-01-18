@@ -21,8 +21,6 @@ CUSTOM_YELLOW_1 = "#ff8000"
 Text.set_default(font="Montserrat")
 config.pixel_width = 1080
 config.pixel_height = 1920
-#config.background_color = "#cccccc"
-#config.transparent = True
 
 # ============================================================
 # Manim scene for pie chart
@@ -33,6 +31,7 @@ class PieChartScene(Scene):
         self.values = values
         self.chart_title = title
         self.transparent_bg = transparent
+        config.transparent = transparent
         super().__init__(**kwargs)
 
     def construct(self):
