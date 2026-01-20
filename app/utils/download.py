@@ -150,4 +150,3 @@ def _extract_video_from_zip(zip_path: Path) -> None:
             
     except Exception as e:
         print(f"Warning: Failed to extract ZIP {zip_path}: {e}")
-

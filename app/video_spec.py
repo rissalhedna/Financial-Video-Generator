@@ -136,10 +136,17 @@ class VideoSpec:
         )
 
 
+from typing import Callable, Optional
+
+# Progress callback type: (step_name, step_number, total_steps)
+ProgressCallback = Callable[[str, int, int], None]
+
+
 def create_video(
     spec: Union[str, Path, Dict[str, Any], VideoSpec],
     force_refresh: bool = False,
     burn_subtitles: bool = True,
+    on_progress: Optional[ProgressCallback] = None,
 ) -> Path:
     """
     Create a video from a specification.
@@ -150,6 +157,7 @@ def create_video(
             - Dictionary with video specification
             - VideoSpec object
         force_refresh: If True, ignore cache and re-download videos
+        on_progress: Optional callback for progress updates (step_name, step_num, total)
     
     Returns:
         Path to the generated video file
@@ -208,14 +216,20 @@ def create_video(
     from .renderer import render
     from .subtitles import write_srt
     
-    with tqdm(total=4, desc="Pipeline", unit="step") as pbar:
+    def notify(step_name: str, step_num: int, total: int = 5):
+        if on_progress:
+            on_progress(step_name, step_num, total)
+    
+    with tqdm(total=5, desc="Pipeline", unit="step") as pbar:
         # 1. Fetch visuals
         pbar.set_description("Fetching footage")
+        notify("Fetching stock footage...", 1, 5)
         visuals = fetch_visuals_for_script(script, tmp_dir / "videos", force_refresh)
         pbar.update(1)
         
         # 2. Generate TTS
         pbar.set_description("Synthesizing audio")
+        notify("Generating voiceover...", 2, 5)
         tts = synthesize_segments(
             script,
             tmp_dir / "audio",
@@ -226,6 +240,7 @@ def create_video(
         
         # 3. Fetch music
         pbar.set_description("Fetching music")
+        notify("Adding background music...", 3, 5)
         bgm_path = None
         try:
             tracks = search_music(video_spec.music)
@@ -236,14 +251,17 @@ def create_video(
             print(f"Warning: Music failed: {e}")
         pbar.update(1)
         
-        # 4. Render
-        pbar.set_description("Rendering video")
+        # 4. Write subtitles
+        pbar.set_description("Writing subtitles")
+        notify("Creating subtitles...", 4, 5)
         out_path = output_dir / "video.mp4"
-
-        # Write subtitles (so they can be burned into the video)
         srt_file = output_dir / "subtitles.srt"
         write_srt(script, tts, srt_file)
-
+        pbar.update(1)
+        
+        # 5. Render
+        pbar.set_description("Rendering video")
+        notify("Rendering final video...", 5, 5)
         plan = build_render_plan(script, visuals, tts, out_path)
         if bgm_path:
             plan.bgm_path = bgm_path

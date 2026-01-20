@@ -1,14 +1,109 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field, HttpUrl, NonNegativeInt, PositiveInt, validator
+
+
+# Video style presets for different content formats
+VIDEO_STYLES: Dict[str, Dict[str, any]] = {
+    "social-media": {"default_seconds": 45, "segment_hint": "3-8 seconds each"},
+    "documentary": {"default_seconds": 300, "segment_hint": "10-25 seconds each"},
+}
+
+# Video content types - what kind of story to tell
+VIDEO_TYPES: Dict[str, Dict[str, str]] = {
+    "stock-analysis": {
+        "name": "Stock Analysis",
+        "description": "Analyze recent price performance and market position",
+        "prompt_hint": "Focus on recent price movements, key metrics, and what's driving the stock",
+    },
+    "company-story": {
+        "name": "Company Story",
+        "description": "Tell the company's journey and growth story",
+        "prompt_hint": "Focus on the company's history, major milestones, and long-term growth trajectory",
+    },
+}
+
+# Supported stocks with CDN data
+SUPPORTED_STOCKS: Dict[str, str] = {
+    # Tech giants
+    "AAPL.US": "Apple",
+    "MSFT.US": "Microsoft",
+    "GOOGL.US": "Google (Alphabet)",
+    "AMZN.US": "Amazon",
+    "META.US": "Meta (Facebook)",
+    "NVDA.US": "Nvidia",
+    "TSLA.US": "Tesla",
+    "NFLX.US": "Netflix",
+    # Finance
+    "JPM.US": "JPMorgan Chase",
+    "GS.US": "Goldman Sachs",
+    "BAC.US": "Bank of America",
+    "WFC.US": "Wells Fargo",
+    "V.US": "Visa",
+    "MA.US": "Mastercard",
+    "PYPL.US": "PayPal",
+    "BRK-B.US": "Berkshire Hathaway",
+    # Healthcare
+    "JNJ.US": "Johnson & Johnson",
+    "PFE.US": "Pfizer",
+    "UNH.US": "UnitedHealth",
+    "ABBV.US": "AbbVie",
+    "MRK.US": "Merck",
+    "LLY.US": "Eli Lilly",
+    # Consumer
+    "WMT.US": "Walmart",
+    "COST.US": "Costco",
+    "KO.US": "Coca-Cola",
+    "PEP.US": "PepsiCo",
+    "NKE.US": "Nike",
+    "SBUX.US": "Starbucks",
+    "MCD.US": "McDonald's",
+    "DIS.US": "Disney",
+    # Industrial / Energy
+    "XOM.US": "ExxonMobil",
+    "CVX.US": "Chevron",
+    "BA.US": "Boeing",
+    "CAT.US": "Caterpillar",
+    "GE.US": "General Electric",
+    "HON.US": "Honeywell",
+    # Semiconductors
+    "AMD.US": "AMD",
+    "INTC.US": "Intel",
+    "QCOM.US": "Qualcomm",
+    "AVGO.US": "Broadcom",
+    "TSM.US": "TSMC",
+    # Telecom
+    "T.US": "AT&T",
+    "VZ.US": "Verizon",
+    "TMUS.US": "T-Mobile",
+    # Other notable
+    "CRM.US": "Salesforce",
+    "ADBE.US": "Adobe",
+    "ORCL.US": "Oracle",
+    "IBM.US": "IBM",
+    "CSCO.US": "Cisco",
+    "UBER.US": "Uber",
+    "ABNB.US": "Airbnb",
+    "SPOT.US": "Spotify",
+    "ZM.US": "Zoom",
+    "SHOP.US": "Shopify",
+    "SQ.US": "Block (Square)",
+    "PLTR.US": "Palantir",
+    "SNOW.US": "Snowflake",
+    "CRWD.US": "CrowdStrike",
+    "COIN.US": "Coinbase",
+}
 
 
 class InputData(BaseModel):
     topic: str
+    stock_symbol: Optional[str] = Field(default=None, description="Stock symbol (e.g., AAPL.US) for CDN data")
+    video_type: str = Field(default="stock-analysis", pattern="^(stock-analysis|company-story)$", description="Type of video content")
     facts: List[str] = Field(default_factory=list)
     news: List[str] = Field(default_factory=list)
     target_seconds: PositiveInt = 45
+    video_style: str = Field(default="social-media", pattern="^(social-media|documentary)$", description="Video format: social-media (short) or documentary (long)")
     mood: str = "excited"
     voice_id: Optional[str] = None
     force_cache_refresh: bool = Field(default=False, description="If True, ignores existing cached video files and redownloads them.")

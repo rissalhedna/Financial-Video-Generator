@@ -16,7 +16,7 @@ import yaml
 
 import gradio as gr
 
-from ..models import InputData
+from ..models import InputData, VIDEO_STYLES, VIDEO_TYPES, SUPPORTED_STOCKS
 from ..script_pipeline import generate_script_only, generate_charts
 from ..video_spec import create_video
 
@@ -120,7 +120,7 @@ def agent_sidebar_html() -> str:
                 <span class="fi-agent-name-sm">{agent['name']}</span>
                 <span class="fi-agent-status-dot"></span>
             </div>
-        </div>
+            </div>
         '''
     
     html += '</div>'
@@ -216,12 +216,12 @@ def preview_area_html() -> str:
             </div>
             '''
     
-    return '''
-    <div class="fi-preview-empty">
-        <div class="fi-preview-icon">🎬</div>
+        return '''
+        <div class="fi-preview-empty">
+            <div class="fi-preview-icon">🎬</div>
         <div class="fi-preview-text">Enter a topic and generate your video</div>
-    </div>
-    '''
+        </div>
+        '''
 
 
 def get_first_chart_video() -> Optional[str]:
@@ -252,7 +252,7 @@ def get_first_chart_video() -> Optional[str]:
     
     if not video_path:
         return None
-    
+
     # Re-encode video for browser compatibility
     return ensure_browser_compatible(video_path)
 
@@ -317,19 +317,24 @@ def status_msg_html(msg: str, type: str = "info", loading: bool = False) -> str:
 # PIPELINE FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════
 
-def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood: str, voice: str, speed: str):
+def generate_script_flow(stock_symbol: str, video_type: str, facts: str, news: str, duration: int, mood: str, voice: str, speed: str, video_style: str):
     """Generate script with real-time progress updates and activity logging."""
     global state
     
-    if not topic.strip():
+    if not stock_symbol:
         yield (
             agent_sidebar_html(),
-            status_msg_html("Please enter a topic", "warning"),
+            status_msg_html("Please select a stock", "warning"),
             preview_area_html(),
             None,
             ""
         )
         return
+    
+    # Build topic from stock symbol and video type
+    company_name = SUPPORTED_STOCKS.get(stock_symbol, stock_symbol.split(".")[0])
+    video_type_config = VIDEO_TYPES.get(video_type, VIDEO_TYPES["stock-analysis"])
+    topic = f"{company_name} {video_type_config['name']}"
     
     try:
         # Reset if new topic
@@ -348,22 +353,28 @@ def generate_script_flow(topic: str, facts: str, news: str, duration: int, mood:
             ""
         )
         
-        # Prepare input
+        # Prepare input (handle None values for optional fields)
+        facts_list = [f.strip() for f in (facts or "").split("\n") if f.strip()]
+        news_list = [n.strip() for n in (news or "").split("\n") if n.strip()]
+        
         input_data = InputData(
             topic=topic,
-            facts=[f.strip() for f in facts.split("\n") if f.strip()],
-            news=[n.strip() for n in news.split("\n") if n.strip()],
+            stock_symbol=stock_symbol,
+            video_type=video_type,
+            facts=facts_list,
+            news=news_list,
             target_seconds=duration,
+            video_style=video_style,
             mood=mood,
             voice_id=voice or "en-US-Studio-O",
             voice_speed=speed,
         )
         
-        slug = topic.lower().replace(" ", "_").replace(".", "")[:30]
+        slug = f"{stock_symbol.lower().replace('.', '_')}_{video_type}"
         yaml_path = Path(f"videos/{slug}.yaml")
         yaml_path.parent.mkdir(parents=True, exist_ok=True)
         
-        state.log(f"Target duration: {duration}s, mood: {mood}")
+        state.log(f"Stock: {company_name} ({stock_symbol}), Type: {video_type_config['name']}")
         
         # Progress callback
         def on_agent_progress(step: int, name: str, status: str):
@@ -525,30 +536,98 @@ def render_charts_flow():
 
 def create_video_flow(yaml_content: str):
     """Create video with progress updates."""
-    try:
-        state.log("Starting video creation...", "highlight")
-        state.current_phase = "🎬 Fetching stock footage..."
-        state.agent_status = "running"
-        
+    # Validate input
+    if not yaml_content or not yaml_content.strip():
         yield (
-            status_msg_html("Creating video (this may take a minute)...", "info", loading=True),
+            status_msg_html("Generate a script first", "warning"),
+            preview_area_html(),
+            None
+        )
+        return
+    
+    try:
+        spec = yaml.safe_load(yaml_content)
+        if not spec:
+            yield (
+                status_msg_html("Invalid YAML content - generate a script first", "warning"),
+                preview_area_html(),
+                None
+            )
+            return
+        
+        state.yaml_spec = spec
+        state.agent_status = "running"
+        state.log("Starting video creation...", "highlight")
+        
+        # Track progress with shared state
+        progress_state = {"step": "", "num": 0, "total": 5}
+        
+        def on_video_progress(step_name: str, step_num: int, total: int):
+            progress_state["step"] = step_name
+            progress_state["num"] = step_num
+            progress_state["total"] = total
+            state.current_phase = f"🎬 {step_name}"
+            state.progress_pct = int((step_num / total) * 100)
+            state.log(f"Step {step_num}/{total}: {step_name}")
+        
+        # Initial status
+        yield (
+            status_msg_html("Starting video creation...", "info", loading=True),
             preview_area_html(),
             None
         )
         
-        spec = yaml.safe_load(yaml_content)
-        state.yaml_spec = spec
+        # Run video creation in a thread with progress updates
+        result = {"video": None, "error": None}
         
-        state.log("Downloading stock footage...")
+        def run_create():
+            try:
+                result["video"] = create_video(
+                    spec, 
+                    force_refresh=False,
+                    on_progress=on_video_progress
+                )
+            except Exception as e:
+                result["error"] = e
         
-        video = create_video(spec, force_refresh=False)
-        video_path = Path(video)
+        thread = threading.Thread(target=run_create)
+        thread.start()
+        
+        # Poll for progress updates
+        last_step = 0
+        step_messages = {
+            1: "📥 Fetching stock footage...",
+            2: "🎙️ Generating voiceover...",
+            3: "🎵 Adding background music...",
+            4: "📝 Creating subtitles...",
+            5: "🎬 Rendering final video...",
+        }
+        
+        while thread.is_alive():
+            current_step = progress_state["num"]
+            if current_step != last_step and current_step > 0:
+                msg = step_messages.get(current_step, f"Step {current_step}...")
+                yield (
+                    status_msg_html(f"{msg} ({current_step}/5)", "info", loading=True),
+                    preview_area_html(),
+                    None
+                )
+                last_step = current_step
+            time.sleep(0.3)
+        
+        thread.join()
+        
+        if result["error"]:
+            raise result["error"]
+        
+        video_path = Path(result["video"])
         if not video_path.is_absolute():
             video_path = Path.cwd() / video_path
         
         state.video_path = str(video_path)
         state.agent_status = "done"
         state.current_phase = ""
+        state.progress_pct = 100
         
         state.log(f"✓ Video created: {video_path.name}", "success")
         
@@ -640,18 +719,35 @@ def create_ui() -> gr.Blocks:
             with gr.Column(scale=1, min_width=340, elem_classes="fi-col-middle"):
                 gr.HTML('<h3 style="color: var(--text-tertiary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 16px 0;">CONFIGURATION</h3>')
                 
-                topic = gr.Textbox(
-                    label="Topic",
-                    placeholder="e.g., Apple Stock Analysis, Tesla Q4 Earnings",
-                    lines=1
+                # Stock selection dropdown
+                stock_choices = [(f"{name} ({symbol})", symbol) for symbol, name in SUPPORTED_STOCKS.items()]
+                stock_symbol = gr.Dropdown(
+                    choices=stock_choices,
+                    value="AAPL.US",
+                    label="Stock"
+                )
+                
+                # Video type selection
+                video_type_choices = [(config["name"], key) for key, config in VIDEO_TYPES.items()]
+                video_type = gr.Radio(
+                    choices=video_type_choices,
+                    value="stock-analysis",
+                    label="Video Type"
+                )
+                
+                with gr.Accordion("📝 Additional Context (Optional)", open=False):
+                    with gr.Row():
+                        facts = gr.Textbox(label="Key Facts", placeholder="One fact per line", lines=3)
+                        news = gr.Textbox(label="Recent News", placeholder="One item per line", lines=3)
+                
+                video_style = gr.Radio(
+                    choices=[("Social Media (Short)", "social-media"), ("Documentary (Long)", "documentary")],
+                    value="social-media",
+                    label="Video Length"
                 )
                 
                 with gr.Row():
-                    facts = gr.Textbox(label="Key Facts", placeholder="One fact per line", lines=3)
-                    news = gr.Textbox(label="Recent News", placeholder="One item per line", lines=3)
-                
-                with gr.Row():
-                    duration = gr.Slider(30, 180, 60, step=15, label="Duration (seconds)")
+                    duration = gr.Slider(30, 600, 45, step=15, label="Duration (seconds)")
                     mood = gr.Dropdown(
                         ["informative", "excited", "dramatic"],
                         value="informative",
@@ -682,7 +778,7 @@ def create_ui() -> gr.Blocks:
                 preview_display = gr.HTML(preview_area_html())
                 
                 video_output = gr.Video(
-                    label=None,
+                    label=None, 
                     height=340,
                     visible=True,
                     autoplay=True,
@@ -694,10 +790,21 @@ def create_ui() -> gr.Blocks:
         gr.HTML('<h3 style="color: var(--text-tertiary); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 24px 24px 12px 24px;">SCRIPT EDITOR</h3>')
         yaml_editor = gr.Code(language="yaml", label=None, lines=14, elem_classes="fi-yaml-editor")
         
+        # Update duration when video style changes
+        def update_duration_for_style(style: str):
+            config = VIDEO_STYLES.get(style, VIDEO_STYLES["social-media"])
+            return config["default_seconds"]
+        
+        video_style.change(
+            update_duration_for_style,
+            inputs=[video_style],
+            outputs=[duration],
+        )
+        
         # Event handlers
         generate_btn.click(
             generate_script_flow,
-            inputs=[topic, facts, news, duration, mood, voice, speed],
+            inputs=[stock_symbol, video_type, facts, news, duration, mood, voice, speed, video_style],
             outputs=[agent_sidebar, status_display, preview_display, video_output, yaml_editor],
         )
         

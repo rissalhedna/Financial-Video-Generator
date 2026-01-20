@@ -20,6 +20,7 @@ def run_pipeline(
     input_json_path: Path,
     output_dir: Path,
     override_seconds: Optional[int] = None,
+    video_style: Optional[str] = None,
     mood: Optional[str] = None,
     voice_id: Optional[str] = None,
     use_ai_speech_control: Optional[bool] = None,
@@ -39,6 +40,8 @@ def run_pipeline(
     input_data = InputData.model_validate(data)
     if override_seconds:
         input_data.target_seconds = override_seconds
+    if video_style:
+        input_data.video_style = video_style
     if mood:
         input_data.mood = mood
 

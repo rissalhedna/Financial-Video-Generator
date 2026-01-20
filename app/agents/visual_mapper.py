@@ -80,6 +80,12 @@ TRIGGERS: Choose the most MEANINGFUL business word, not transition phrases like 
         settings = get_settings()
         client = OpenAI(api_key=settings.openai_api_key, timeout=60.0)
         
+        # Track which original segments were chart placeholders
+        original_chart_flags = {
+            seg.get("text", "").lower().strip(): seg.get("is_chart_placeholder", False)
+            for seg in segments
+        }
+        
         segments_json = json.dumps(segments, indent=2)
         
         user_prompt = f"""TOPIC: {topic}
@@ -93,6 +99,9 @@ This is a BUSINESS/FINANCE video. Choose visuals like a professional documentary
 - "Fast forward" → show modern office, NOT fast cars
 - "Journey" → show company growth, NOT hiking
 - "Dive in" → show research/analysis, NOT swimming
+
+⚠️ IMPORTANT: Preserve the is_chart_placeholder flag exactly as it appears in the input!
+If a segment has is_chart_placeholder: true, keep it true in the output.
 
 GOOD EXAMPLE:
 {{
@@ -143,14 +152,35 @@ Return JSON with business-appropriate visuals:
                 for clip in seg.get("clips", [])
             ]
             
+            # Preserve is_chart_placeholder from original segments
+            seg_text_key = seg.get("text", "").lower().strip()
+            is_chart = seg.get("is_chart_placeholder", False)
+            
+            # Also check original segments for chart flag (in case LLM didn't preserve it)
+            if not is_chart:
+                # Try to match by text similarity
+                for orig_text, orig_flag in original_chart_flags.items():
+                    if orig_flag and self._text_similar(seg_text_key, orig_text):
+                        is_chart = True
+                        break
+            
             result.append(VisualSegmentOutput(
                 text=seg.get("text", ""),
                 emotion=seg.get("emotion", "informative"),
                 duration_estimate_seconds=seg.get("duration_estimate_seconds", 5.0),
                 on_screen_text=seg.get("on_screen_text"),
-                is_chart_placeholder=seg.get("is_chart_placeholder", False),
+                is_chart_placeholder=is_chart,
                 clips=clips,
             ))
         
         return result
+    
+    def _text_similar(self, text1: str, text2: str) -> bool:
+        """Check if two texts are similar enough to be the same segment."""
+        words1 = set(text1.split())
+        words2 = set(text2.split())
+        if not words1 or not words2:
+            return False
+        overlap = len(words1 & words2) / min(len(words1), len(words2))
+        return overlap > 0.5
 

@@ -286,17 +286,17 @@ def fetch_visuals_for_script(
                 info = get_video_info(task["dest"])
                 w, h = info if info else (1080, 1920)
             
-            asset = VisualAsset(
-                segment_id=task["seg_id"],
-                source_url=str(task["dest"]),
-                file_path=str(task["dest"]),
+                asset = VisualAsset(
+                    segment_id=task["seg_id"],
+                    source_url=str(task["dest"]),
+                    file_path=str(task["dest"]),
                 width=w,
                 height=h,
-                duration_ms=task["duration_ms"],
-            )
-            if task["seg_id"] not in cached_results:
-                cached_results[task["seg_id"]] = []
-            cached_results[task["seg_id"]].append((task["clip_idx"], asset))
+                    duration_ms=task["duration_ms"],
+                )
+                if task["seg_id"] not in cached_results:
+                    cached_results[task["seg_id"]] = []
+                cached_results[task["seg_id"]].append((task["clip_idx"], asset))
         else:
             tasks_to_fetch.append(task)
     

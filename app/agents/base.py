@@ -23,6 +23,7 @@ class AgentContext:
     target_seconds: int = 60
     mood: str = "informative"
     previous_segments: List[Dict[str, Any]] = field(default_factory=list)
+    segment_duration_hint: str = "3-8 seconds each"  # Hint for segment length based on video style
     
     def get_previous_text(self) -> str:
         """Get all previous segment texts for context."""
@@ -87,7 +88,8 @@ FACTS:
 NEWS:
 - {news_str}
 
-TARGET DURATION: {self.target_duration_seconds} seconds{previous_section}
+TARGET DURATION: {self.target_duration_seconds} seconds
+SEGMENT LENGTH: {context.segment_duration_hint}{previous_section}
 
 Return ONLY valid JSON with this format:
 {{
