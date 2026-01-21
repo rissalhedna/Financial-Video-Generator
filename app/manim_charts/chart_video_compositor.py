@@ -1,4 +1,5 @@
 import subprocess
+import random
 from pathlib import Path
 
 
@@ -35,3 +36,16 @@ def compose_with_background(background_mp4: str, chart_mov: str) -> str:
 
     subprocess.run(cmd, check=True)
     return str(out_mp4)
+
+
+def pick_background_video(background_dir: str, default_background: str) -> str:
+    bg_dir = Path(background_dir)
+
+    if not bg_dir.exists() or not bg_dir.is_dir():
+        return default_background
+
+    videos = sorted([*bg_dir.glob("*.mp4"), *bg_dir.glob("*.mov")])
+    if not videos:
+        return default_background
+
+    return str(random.choice(videos))
