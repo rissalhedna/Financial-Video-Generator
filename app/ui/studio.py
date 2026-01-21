@@ -253,16 +253,20 @@ def get_first_chart_video() -> Optional[str]:
     if not video_path:
         return None
 
-    # Re-encode video for browser compatibility
-    return ensure_browser_compatible(video_path)
+    # Re-encode video for browser compatibility (charts have no audio)
+    return ensure_browser_compatible(video_path, include_audio=False)
 
 
-def ensure_browser_compatible(video_path: Path) -> str:
+def ensure_browser_compatible(video_path: Path, include_audio: bool = True) -> str:
     """
     Ensure video is browser-compatible by re-encoding if needed.
     
     Manim outputs can sometimes use codecs that browsers don't play well.
     This re-encodes to H.264 with web-optimized settings.
+    
+    Args:
+        video_path: Path to the video file
+        include_audio: If True, preserve audio track. Set False for chart videos.
     """
     import subprocess
     import tempfile
@@ -271,7 +275,8 @@ def ensure_browser_compatible(video_path: Path) -> str:
     temp_dir = Path(tempfile.gettempdir()) / "fiindo_preview"
     temp_dir.mkdir(exist_ok=True)
     
-    output_path = temp_dir / f"preview_{video_path.stem}.mp4"
+    suffix = "_audio" if include_audio else "_noaudio"
+    output_path = temp_dir / f"preview_{video_path.stem}{suffix}.mp4"
     
     # Skip if already converted recently
     if output_path.exists():
@@ -289,11 +294,18 @@ def ensure_browser_compatible(video_path: Path) -> str:
             "-crf", "23",
             "-pix_fmt", "yuv420p",  # Required for browser compatibility
             "-movflags", "+faststart",  # Enable streaming
-            "-an",  # No audio for charts
-            str(output_path)
         ]
         
-        result = subprocess.run(cmd, capture_output=True, timeout=60)
+        if include_audio:
+            # Copy audio codec (AAC is browser compatible)
+            cmd.extend(["-c:a", "aac", "-b:a", "128k"])
+        else:
+            # No audio for chart previews
+            cmd.append("-an")
+        
+        cmd.append(str(output_path))
+        
+        result = subprocess.run(cmd, capture_output=True, timeout=120)
         
         if result.returncode == 0 and output_path.exists():
             return str(output_path)
@@ -306,11 +318,21 @@ def ensure_browser_compatible(video_path: Path) -> str:
         return str(video_path)
 
 
-def status_msg_html(msg: str, type: str = "info", loading: bool = False) -> str:
-    """Generate animated status message."""
+def status_msg_html(msg: str, type: str = "info", loading: bool = False, progress: int = 0) -> str:
+    """Generate animated status message with optional progress bar."""
     icons = {"success": "✓", "error": "✕", "info": "ℹ", "warning": "⚠"}
     loading_class = " loading" if loading else ""
-    return f'<div class="fi-status-{type}{loading_class}"><span>{icons.get(type, "ℹ")}</span> {msg}</div>'
+    
+    # Add progress bar for loading states
+    progress_html = ""
+    if loading and progress > 0:
+        progress_html = f'''
+        <div class="fi-inline-progress">
+            <div class="fi-inline-progress-fill" style="width: {progress}%;"></div>
+        </div>
+        '''
+    
+    return f'<div class="fi-status-{type}{loading_class}"><span>{icons.get(type, "ℹ")}</span> {msg}{progress_html}</div>'
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -393,6 +415,14 @@ def generate_script_flow(stock_symbol: str, video_type: str, facts: str, news: s
         # Run pipeline in thread
         result = {"spec": None, "charts": None, "error": None}
         
+        # Map mood to music style
+        mood_to_music = {
+            "informative": "ambient",
+            "excited": "upbeat",
+            "dramatic": "dramatic",
+        }
+        music_style = mood_to_music.get(mood, "ambient")
+        
         def run_pipeline():
             try:
                 spec, charts = generate_script_only(
@@ -400,6 +430,7 @@ def generate_script_flow(stock_symbol: str, video_type: str, facts: str, news: s
                     output_path=yaml_path,
                     voice_id=voice or "en-US-Studio-O",
                     voice_speed=speed,
+                    music=music_style,
                     on_progress=on_agent_progress,
                 )
                 result["spec"] = spec
@@ -557,18 +588,38 @@ def create_video_flow(yaml_content: str):
         
         state.yaml_spec = spec
         state.agent_status = "running"
+        
+        # Auto-render charts if not already rendered
+        if state.chart_segments:
+            # Check if charts are already in the spec
+            has_charts = any(seg.get("chart_video") for seg in spec.get("segments", []))
+            if not has_charts:
+                state.log("Auto-rendering charts before video creation...", "highlight")
+                yield (
+                    status_msg_html("📊 Rendering charts first...", "info", loading=True),
+                    preview_area_html(),
+                    None
+                )
+                state.yaml_spec = generate_charts(state.yaml_spec, state.chart_segments)
+                spec = state.yaml_spec  # Use updated spec with chart paths
+                state.log("✓ Charts rendered", "success")
+        
         state.log("Starting video creation...", "highlight")
         
-        # Track progress with shared state
-        progress_state = {"step": "", "num": 0, "total": 5}
+        # Track progress with shared state (now includes detail messages)
+        progress_state = {"step": "", "num": 0, "total": 5, "detail": "", "updated": False}
         
-        def on_video_progress(step_name: str, step_num: int, total: int):
+        def on_video_progress(step_name: str, step_num: int, total: int, detail: str = None):
             progress_state["step"] = step_name
             progress_state["num"] = step_num
             progress_state["total"] = total
+            progress_state["detail"] = detail or ""
+            progress_state["updated"] = True
             state.current_phase = f"🎬 {step_name}"
             state.progress_pct = int((step_num / total) * 100)
-            state.log(f"Step {step_num}/{total}: {step_name}")
+            # Log detail for activity feed
+            if detail:
+                state.log(detail, "info")
         
         # Initial status
         yield (
@@ -593,36 +644,57 @@ def create_video_flow(yaml_content: str):
         thread = threading.Thread(target=run_create)
         thread.start()
         
-        # Poll for progress updates
+        # Poll for progress updates with rolling detail text
         last_step = 0
+        last_detail = ""
         step_messages = {
-            1: "📥 Fetching stock footage...",
-            2: "🎙️ Generating voiceover...",
-            3: "🎵 Adding background music...",
-            4: "📝 Creating subtitles...",
-            5: "🎬 Rendering final video...",
+            1: "📥 Fetching stock footage",
+            2: "🎙️ Generating voiceover",
+            3: "🎵 Adding background music",
+            4: "📝 Creating subtitles",
+            5: "🎬 Rendering final video",
         }
         
         while thread.is_alive():
             current_step = progress_state["num"]
-            if current_step != last_step and current_step > 0:
-                msg = step_messages.get(current_step, f"Step {current_step}...")
+            current_detail = progress_state["detail"]
+            
+            # Update UI when step or detail changes
+            if progress_state["updated"] and current_step > 0:
+                progress_state["updated"] = False
+                msg = step_messages.get(current_step, f"Step {current_step}")
+                progress_pct = int((current_step / 5) * 100)
+                
+                # Build status with rolling detail - white text for visibility
+                if current_detail:
+                    status_text = f"<span class='fi-status-main'>{msg}</span><span class='fi-status-detail'>{current_detail}</span>"
+                else:
+                    status_text = f"<span class='fi-status-main'>{msg}</span>"
+                
                 yield (
-                    status_msg_html(f"{msg} ({current_step}/5)", "info", loading=True),
+                    status_msg_html(status_text, "info", loading=True, progress=progress_pct),
                     preview_area_html(),
                     None
                 )
                 last_step = current_step
-            time.sleep(0.3)
+                last_detail = current_detail
+            time.sleep(0.15)  # Faster polling for smoother updates
         
         thread.join()
         
         if result["error"]:
             raise result["error"]
         
-        video_path = Path(result["video"])
+        if result["video"] is None:
+            raise ValueError("Video creation returned no result")
+        
+        # Handle both Path and string returns
+        video_path = Path(result["video"]) if not isinstance(result["video"], Path) else result["video"]
         if not video_path.is_absolute():
             video_path = Path.cwd() / video_path
+        
+        if not video_path.exists():
+            raise FileNotFoundError(f"Video file not found: {video_path}")
         
         state.video_path = str(video_path)
         state.agent_status = "done"
@@ -632,7 +704,11 @@ def create_video_flow(yaml_content: str):
         state.log(f"✓ Video created: {video_path.name}", "success")
         
         # Ensure browser compatibility for final video
-        playable_path = ensure_browser_compatible(video_path)
+        try:
+            playable_path = ensure_browser_compatible(video_path)
+        except Exception as enc_err:
+            print(f"Warning: Browser encoding failed: {enc_err}, using original")
+            playable_path = str(video_path)
         
         yield (
             status_msg_html("✓ Video ready! Press play to watch", "success"),

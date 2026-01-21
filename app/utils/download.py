@@ -73,7 +73,7 @@ def download_file(url: str, dest: Path, max_retries: int = 2, skip_validation: b
     if dest.exists() and dest.stat().st_size > 10000:  # Min 10KB
         if skip_validation:
             return dest
-        if is_video_valid(dest):
+        elif is_video_valid(dest):
             return dest
     
     # Delete invalid cached file

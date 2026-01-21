@@ -114,8 +114,8 @@ if __name__ == "__main__":
     if json_files:
         json_path = str(json_files[0])
         print(f"Rendering chart from: {json_path}")
-    videopath = render_chart_from_json_file(json_path, transparent=True)
-    subprocess.run(["open", videopath], check=False)
+        videopath = render_chart_from_json_file(json_path, transparent=True)
+        subprocess.run(["open", videopath], check=False)
         print(f"Video path: {videopath}")
     else:
         print(f"No JSON files found in {cdn_dir}")

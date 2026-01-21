@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import concurrent.futures
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Callable, Dict, List, Tuple, Optional
 
 from tqdm import tqdm
 
@@ -206,10 +206,15 @@ def _quick_cache_check(dest: Path) -> bool:
     return dest.exists() and dest.stat().st_size > 10000  # Min 10KB
 
 
+# Progress callback type: (message, current, total)
+DownloadProgressCallback = Optional[Callable[[str, int, int], None]]
+
+
 def fetch_visuals_for_script(
     script: Script, 
     cache_dir: Path, 
-    force_refresh: bool = False
+    force_refresh: bool = False,
+    on_progress: DownloadProgressCallback = None
 ) -> Dict[int, List[VisualAsset]]:
     """
     Fetch videos for all segments in a script.
@@ -218,6 +223,9 @@ def fetch_visuals_for_script(
     - Quick cache checks (no ffprobe)
     - Parallel downloads (5 workers)
     - Pre-filtering of tasks
+    
+    Args:
+        on_progress: Optional callback (message, current_clip, total_clips)
     """
     cache_dir.mkdir(parents=True, exist_ok=True)
     
@@ -300,8 +308,13 @@ def fetch_visuals_for_script(
         else:
             tasks_to_fetch.append(task)
     
-    if cached_results:
-        print(f"📦 {sum(len(v) for v in cached_results.values())} clips cached, {len(tasks_to_fetch)} to download")
+    cached_count = sum(len(v) for v in cached_results.values())
+    total_to_download = len(tasks_to_fetch)
+    
+    if cached_count > 0:
+        print(f"📦 {cached_count} clips cached, {total_to_download} to download")
+        if on_progress:
+            on_progress(f"Found {cached_count} cached clips", 0, total_to_download)
     
     # Fetch new clips with more parallel workers
     if tasks_to_fetch:
@@ -316,6 +329,7 @@ def fetch_visuals_for_script(
         
         # Increase workers for faster parallel downloads
         max_workers = min(5, len(tasks_to_fetch))
+        completed_count = 0
         
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(fetch_task, t): t for t in tasks_to_fetch}
@@ -324,6 +338,13 @@ def fetch_visuals_for_script(
                               total=len(tasks_to_fetch), desc="Downloading", unit="clip"):
                 try:
                     task, result, download_info = future.result()
+                    completed_count += 1
+                    
+                    # Report progress
+                    if on_progress:
+                        tags_str = ", ".join(task["tags"][:2]) if task["tags"] else "clip"
+                        on_progress(f"Downloaded: {tags_str}", completed_count, total_to_download)
+                    
                     if result:
                         path, w, h = result
                         asset = VisualAsset(
@@ -371,22 +392,75 @@ def fetch_visuals_for_script(
     return assets
 
 
-# Background music
-MUSIC_TRACKS = [
-    {
-        "name": "Ambient Technology",
-        "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3",
-    },
-    {
-        "name": "Cinematic Emotional",
-        "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Chapter_Two__Mild/Kai_Engel_-_08_-_Daemones.mp3",
-    },
-]
+# Background music organized by mood/style
+# All tracks are Creative Commons licensed from Free Music Archive
+MUSIC_BY_MOOD = {
+    "corporate": [
+        {
+            "name": "Corporate Upbeat",
+            "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Scott_Holmes/Corporate__Motivational_Music/Scott_Holmes_-_01_-_Upbeat_Party.mp3",
+        },
+    ],
+    "inspirational": [
+        {
+            "name": "Inspiring Ambient",
+            "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Shipping_Lanes.mp3",
+        },
+    ],
+    "dramatic": [
+        {
+            "name": "Cinematic Drama",
+            "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Chapter_Two__Mild/Kai_Engel_-_08_-_Daemones.mp3",
+        },
+    ],
+    "ambient": [
+        {
+            "name": "Soft Ambient",
+            "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kai_Engel/Satin/Kai_Engel_-_04_-_Sentinel.mp3",
+        },
+    ],
+    "upbeat": [
+        {
+            "name": "Energetic Pop",
+            "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Scott_Holmes/Corporate__Motivational_Music/Scott_Holmes_-_04_-_Smile.mp3",
+        },
+    ],
+    "technology": [
+        {
+            "name": "Digital Tech",
+            "url": "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Chad_Crouch/Arps/Chad_Crouch_-_Algorithms.mp3",
+        },
+    ],
+}
+
+# Default fallback tracks
+MUSIC_TRACKS = MUSIC_BY_MOOD["ambient"]
 
 
 def search_music(query: str = "inspirational", limit: int = 1) -> List[dict]:
-    """Get background music tracks."""
-    return MUSIC_TRACKS[:limit]
+    """Get background music tracks matching the mood/query."""
+    query_lower = query.lower().strip()
+    
+    # Direct mood match
+    if query_lower in MUSIC_BY_MOOD:
+        return MUSIC_BY_MOOD[query_lower][:limit]
+    
+    # Keyword mapping
+    mood_keywords = {
+        "corporate": ["business", "professional", "corporate", "stock", "finance"],
+        "inspirational": ["inspiring", "inspirational", "motivation", "hopeful"],
+        "dramatic": ["dramatic", "cinematic", "epic", "intense", "powerful"],
+        "ambient": ["calm", "ambient", "soft", "gentle", "peaceful", "relaxing"],
+        "upbeat": ["upbeat", "happy", "energetic", "fun", "exciting", "excited"],
+        "technology": ["tech", "technology", "digital", "modern", "innovation"],
+    }
+    
+    for mood, keywords in mood_keywords.items():
+        if any(kw in query_lower for kw in keywords):
+            return MUSIC_BY_MOOD[mood][:limit]
+    
+    # Default to ambient for informative content
+    return MUSIC_BY_MOOD["ambient"][:limit]
 
 
 def download_music(url: str, dest: Path) -> Path:

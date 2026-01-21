@@ -138,8 +138,9 @@ class VideoSpec:
 
 from typing import Callable, Optional
 
-# Progress callback type: (step_name, step_number, total_steps)
-ProgressCallback = Callable[[str, int, int], None]
+# Progress callback type: (step_name, step_number, total_steps, detail_message)
+# detail_message is optional and provides granular info like "Downloaded clip 3/10"
+ProgressCallback = Callable[[str, int, int, Optional[str]], None]
 
 
 def create_video(
@@ -216,20 +217,30 @@ def create_video(
     from .renderer import render
     from .subtitles import write_srt
     
-    def notify(step_name: str, step_num: int, total: int = 5):
+    def notify(step_name: str, step_num: int, total: int = 5, detail: Optional[str] = None):
         if on_progress:
-            on_progress(step_name, step_num, total)
+            on_progress(step_name, step_num, total, detail)
+    
+    # Create a download progress handler
+    def on_download_progress(message: str, current: int, total_clips: int):
+        detail = f"{message} ({current}/{total_clips})"
+        notify("Fetching stock footage...", 1, 5, detail)
     
     with tqdm(total=5, desc="Pipeline", unit="step") as pbar:
         # 1. Fetch visuals
         pbar.set_description("Fetching footage")
-        notify("Fetching stock footage...", 1, 5)
-        visuals = fetch_visuals_for_script(script, tmp_dir / "videos", force_refresh)
+        notify("Fetching stock footage...", 1, 5, "Searching for clips...")
+        visuals = fetch_visuals_for_script(
+            script, 
+            tmp_dir / "videos", 
+            force_refresh,
+            on_progress=on_download_progress
+        )
         pbar.update(1)
         
         # 2. Generate TTS
         pbar.set_description("Synthesizing audio")
-        notify("Generating voiceover...", 2, 5)
+        notify("Generating voiceover...", 2, 5, f"Processing {len(script.segments)} segments...")
         tts = synthesize_segments(
             script,
             tmp_dir / "audio",
@@ -240,11 +251,12 @@ def create_video(
         
         # 3. Fetch music
         pbar.set_description("Fetching music")
-        notify("Adding background music...", 3, 5)
+        notify("Adding background music...", 3, 5, f"Searching for '{video_spec.music}' track...")
         bgm_path = None
         try:
             tracks = search_music(video_spec.music)
             if tracks:
+                notify("Adding background music...", 3, 5, "Downloading music...")
                 bgm_dest = tmp_dir / "audio" / f"bgm_{video_spec.music}.mp3"
                 bgm_path = str(download_music(tracks[0]["url"], bgm_dest))
         except Exception as e:
@@ -253,7 +265,7 @@ def create_video(
         
         # 4. Write subtitles
         pbar.set_description("Writing subtitles")
-        notify("Creating subtitles...", 4, 5)
+        notify("Creating subtitles...", 4, 5, "Generating subtitle file...")
         out_path = output_dir / "video.mp4"
         srt_file = output_dir / "subtitles.srt"
         write_srt(script, tts, srt_file)
@@ -261,13 +273,14 @@ def create_video(
         
         # 5. Render
         pbar.set_description("Rendering video")
-        notify("Rendering final video...", 5, 5)
+        notify("Rendering final video...", 5, 5, "Compositing clips and audio...")
         plan = build_render_plan(script, visuals, tts, out_path)
         if bgm_path:
             plan.bgm_path = bgm_path
         if burn_subtitles and srt_file.exists():
             plan.srt_path = str(srt_file)
 
+        notify("Rendering final video...", 5, 5, "Running FFmpeg encoder...")
         result_path = render(plan)
         pbar.update(1)
     
