@@ -29,7 +29,7 @@ SUPPORTED_STOCKS: Dict[str, str] = {
     # Tech giants
     "AAPL.US": "Apple",
     "MSFT.US": "Microsoft",
-    "GOOGL.US": "Google (Alphabet)",
+    "GOOG.US": "Google (Alphabet)",
     "AMZN.US": "Amazon",
     "META.US": "Meta (Facebook)",
     "NVDA.US": "Nvidia",
@@ -43,7 +43,7 @@ SUPPORTED_STOCKS: Dict[str, str] = {
     "V.US": "Visa",
     "MA.US": "Mastercard",
     "PYPL.US": "PayPal",
-    "BRK-B.US": "Berkshire Hathaway",
+    "BRK-A.US": "Berkshire Hathaway",
     # Healthcare
     "JNJ.US": "Johnson & Johnson",
     "PFE.US": "Pfizer",

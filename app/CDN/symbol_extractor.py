@@ -14,8 +14,8 @@ COMPANY_SYMBOLS: Dict[str, str] = {
     # Tech giants
     "apple": "AAPL.US",
     "microsoft": "MSFT.US",
-    "google": "GOOGL.US",
-    "alphabet": "GOOGL.US",
+    "google": "GOOG.US",
+    "alphabet": "GOOG.US",
     "amazon": "AMZN.US",
     "meta": "META.US",
     "facebook": "META.US",
@@ -33,8 +33,8 @@ COMPANY_SYMBOLS: Dict[str, str] = {
     "visa": "V.US",
     "mastercard": "MA.US",
     "paypal": "PYPL.US",
-    "berkshire": "BRK-B.US",
-    "berkshire hathaway": "BRK-B.US",
+    "berkshire": "BRK-A.US",
+    "berkshire hathaway": "BRK-A.US",
     
     # Healthcare
     "johnson & johnson": "JNJ.US",

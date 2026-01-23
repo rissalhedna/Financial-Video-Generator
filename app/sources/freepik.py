@@ -15,10 +15,10 @@ class FreepikSource(VideoSource):
     
     name = "freepik"
     SEARCH_URL = "https://api.freepik.com/v1/videos"
+    _rate_limited = False  # Class variable to persist across instances
     
     def __init__(self):
         self.settings = get_settings()
-        self._rate_limited = False
         self._client = None
     
     def is_available(self) -> bool:
@@ -34,7 +34,7 @@ class FreepikSource(VideoSource):
                 resp = client.post(url)
             
             if resp.status_code == 429:
-                self._rate_limited = True
+                FreepikSource._rate_limited = True
                 return None
             
             resp.raise_for_status()
@@ -93,7 +93,7 @@ class FreepikSource(VideoSource):
                 resp = client.get(self.SEARCH_URL, params=params)
                 
                 if resp.status_code == 429:
-                    self._rate_limited = True
+                    FreepikSource._rate_limited = True
                     print("⚠️  Freepik rate limited")
                     return []
                 
@@ -125,6 +125,6 @@ class FreepikSource(VideoSource):
                 
         except Exception as e:
             if "429" in str(e):
-                self._rate_limited = True
+                FreepikSource._rate_limited = True
                 print("⚠️  Freepik rate limited")
             return []

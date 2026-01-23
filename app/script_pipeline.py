@@ -55,6 +55,97 @@ def _extract_stock_symbol(topic: str) -> Optional[str]:
         return None
 
 
+def _fetch_cdn_facts(symbol: str) -> List[str]:
+    """
+    Fetch real financial data from CDN and format as facts for the LLM.
+    
+    Args:
+        symbol: Stock symbol (e.g., "AAPL.US")
+        
+    Returns:
+        List of fact strings with real data
+    """
+    facts = []
+    
+    try:
+        from .CDN import CdnSource, ChartRange
+        from .config import get_settings
+        
+        settings = get_settings()
+        if not settings.cdn_api_url or not settings.cdn_api_key:
+            return facts
+        
+        cdn = CdnSource()
+        
+        # Fetch company metadata
+        meta = cdn.fetch_company_metadata(symbol)
+        if meta:
+            company_name = meta.get("company_name", symbol.split(".")[0])
+            
+            # Market cap
+            market_cap = meta.get("market_cap")
+            if market_cap:
+                if market_cap >= 1e12:
+                    facts.append(f"{company_name} has a market cap of ${market_cap/1e12:.2f} trillion")
+                elif market_cap >= 1e9:
+                    facts.append(f"{company_name} has a market cap of ${market_cap/1e9:.1f} billion")
+            
+            # Revenue
+            revenue = meta.get("total_revenue_lq")
+            if revenue:
+                if revenue >= 1e9:
+                    facts.append(f"Last quarter revenue was ${revenue/1e9:.1f} billion")
+                elif revenue >= 1e6:
+                    facts.append(f"Last quarter revenue was ${revenue/1e6:.1f} million")
+            
+            # Net income
+            net_income = meta.get("net_income_lq")
+            if net_income:
+                if net_income >= 1e9:
+                    facts.append(f"Net income last quarter: ${net_income/1e9:.1f} billion")
+                elif net_income >= 1e6:
+                    facts.append(f"Net income last quarter: ${net_income/1e6:.1f} million")
+            
+            # P/E ratio
+            pe_ratio = meta.get("price_to_earnings_ratio_lq")
+            if pe_ratio:
+                facts.append(f"Price-to-earnings ratio: {pe_ratio:.1f}")
+            
+            # Industry & Sector
+            sector = meta.get("sector")
+            industry = meta.get("industry")
+            if sector and industry:
+                facts.append(f"Operates in the {industry} industry ({sector} sector)")
+        
+        # Fetch chart data for price range
+        chart_data = cdn.fetch_chart_json(symbol)
+        if chart_data:
+            # Use 1-year data for price range
+            year_data = chart_data.get("chart_1j", [])
+            if year_data and len(year_data) >= 2:
+                prices = [p.get("adjusted_close", 0) for p in year_data if p.get("adjusted_close")]
+                if prices:
+                    start_price = prices[0]
+                    end_price = prices[-1]
+                    min_price = min(prices)
+                    max_price = max(prices)
+                    
+                    # Calculate percentage change
+                    pct_change = ((end_price - start_price) / start_price) * 100
+                    change_dir = "up" if pct_change > 0 else "down"
+                    
+                    facts.append(f"Stock price ranged from ${min_price:.2f} to ${max_price:.2f} over the past year")
+                    facts.append(f"Stock is {change_dir} {abs(pct_change):.1f}% over the last year (${start_price:.2f} → ${end_price:.2f})")
+        
+        if facts:
+            print(f"📊 Loaded {len(facts)} facts from CDN for {symbol}")
+        
+    except Exception as e:
+        print(f"⚠️ Could not fetch CDN facts: {e}")
+    
+    return facts
+
+
 def generate_script_only(
     input_data: InputData,
     output_path: Optional[Path] = None,
@@ -83,18 +174,22 @@ def generate_script_only(
     style_config = VIDEO_STYLES.get(input_data.video_style, VIDEO_STYLES["social-media"])
     segment_hint = style_config["segment_hint"]
     
+    # Use stock symbol from input data, or extract from topic as fallback
+    stock_symbol = input_data.stock_symbol or _extract_stock_symbol(input_data.topic)
+    
+    # Fetch real data from CDN and merge with user-provided facts
+    cdn_facts = _fetch_cdn_facts(stock_symbol) if stock_symbol else []
+    all_facts = cdn_facts + (input_data.facts or [])
+    
     context = AgentContext(
         topic=input_data.topic,
-        facts=input_data.facts,
+        facts=all_facts,  # Now includes real CDN data!
         news=input_data.news,
         target_seconds=input_data.target_seconds,
         mood=input_data.mood,
         previous_segments=[],
         segment_duration_hint=segment_hint,
     )
-    
-    # Use stock symbol from input data, or extract from topic as fallback
-    stock_symbol = input_data.stock_symbol or _extract_stock_symbol(input_data.topic)
     
     # Calculate duration targets
     total_target = input_data.target_seconds
